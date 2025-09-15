@@ -1,0 +1,5 @@
+{
+  "name": "Spot-Hit",
+  "description": "A multiplayer web application that simulates the popular game Hitster, using Spotify playlists as a source of music. Players guess the release year of songs, their name and artist, or the chronological order of various songs.",
+  "requestFramePermissions": []
+}

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Spotify Login Callback</title>
+  <style>
+    body {
+      background-color: #121212;
+      color: #ffffff;
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      text-align: center;
+    }
+  </style>
+  <script>
+    window.onload = function() {
+      if (window.location.hash) {
+        const params = new URLSearchParams(window.location.hash.substring(1));
+        const token = params.get('access_token');
+        const error = params.get('error');
+        
+        if (window.opener) {
+          // Send a message to the main window with the authentication result
+          window.opener.postMessage({
+            type: 'spotify_auth',
+            token: token,
+            error: error
+          }, window.location.origin);
+        }
+      }
+      // The main window will close this popup once it receives the message.
+    };
+  </script>
+</head>
+<body>
+  <p>Authenticating with Spotify... This window will close automatically.</p>
+</body>
+</html>
