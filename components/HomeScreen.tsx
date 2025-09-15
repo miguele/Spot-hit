@@ -12,7 +12,8 @@ interface HomeScreenProps {
 const HomeScreen: React.FC<HomeScreenProps> = ({ onTokenReceived }) => {
   const { addNotification } = useNotification();
   const isDynamicUrl = window.location.hostname.includes('github.io') || window.location.hostname.includes('usercontent.goog');
-  const redirectUri = (window.location.origin + window.location.pathname).replace(/\/$/, '');
+  // The redirect URI now points to the dedicated callback.html file.
+  const redirectUri = (window.location.origin + window.location.pathname).replace(/\/$/, '') + '/callback.html';
 
 
   const handleLogin = () => {

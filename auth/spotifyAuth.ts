@@ -5,7 +5,9 @@ export const generateAuthUrl = (): string => {
     // to ensure it works correctly when hosted in a subdirectory (e.g., GitHub Pages).
     // We remove any trailing slash to keep the URL clean.
     const fullPath = (window.location.origin + window.location.pathname).replace(/\/$/, '');
-    const REDIRECT_URI = fullPath;
+    
+    // The redirect URI must point to the dedicated callback handler page.
+    const REDIRECT_URI = `${fullPath}/callback.html`;
     
     const params = new URLSearchParams();
     params.append("client_id", CLIENT_ID);
