@@ -15,8 +15,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onTokenReceived }) => {
   // Show the developer note on any non-production looking URL.
   const isDevEnvironment = window.location.hostname !== new URL(CANONICAL_URL).hostname;
   
-  // The redirect URI now points to the dedicated callback.html file at the canonical URL.
-  const redirectUri = new URL('callback.html', CANONICAL_URL).href;
+  // The redirect URI now points to the app's root URL to be handled by the main script.
+  const redirectUri = CANONICAL_URL;
 
 
   const handleLogin = async () => {
@@ -36,7 +36,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onTokenReceived }) => {
       }
 
       const handleAuthMessage = async (event: MessageEvent) => {
-        // We expect the message to come from our canonical origin, where callback.html is hosted.
+        // We expect the message to come from our canonical origin.
         if (event.origin !== new URL(CANONICAL_URL).origin || event.data.type !== 'spotify_auth_code') {
           return;
         }

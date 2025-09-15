@@ -31,7 +31,7 @@ export const generateAuthUrlAndVerifier = async (): Promise<{ authUrl: string; v
   const hashed = await sha256(verifier);
   const challenge = base64encode(hashed);
   
-  const REDIRECT_URI = new URL('callback.html', CANONICAL_URL).href;
+  const REDIRECT_URI = CANONICAL_URL;
 
   const params = new URLSearchParams();
   params.append("client_id", CLIENT_ID);
@@ -49,7 +49,7 @@ export const generateAuthUrlAndVerifier = async (): Promise<{ authUrl: string; v
 // --- Token Exchange ---
 
 export const exchangeCodeForToken = async (code: string, verifier: string): Promise<string> => {
-    const REDIRECT_URI = new URL('callback.html', CANONICAL_URL).href;
+    const REDIRECT_URI = CANONICAL_URL;
 
     const params = new URLSearchParams();
     params.append("client_id", CLIENT_ID);
