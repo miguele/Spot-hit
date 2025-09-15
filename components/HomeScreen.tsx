@@ -4,6 +4,7 @@ import SpotifyLogo from './SpotifyLogo';
 import Card from './Card';
 import { generateAuthUrl } from '../auth/spotifyAuth';
 import { useNotification } from '../contexts/NotificationContext';
+import { CANONICAL_URL } from '../config';
 
 interface HomeScreenProps {
   onTokenReceived: (token: string) => void;
@@ -11,9 +12,11 @@ interface HomeScreenProps {
 
 const HomeScreen: React.FC<HomeScreenProps> = ({ onTokenReceived }) => {
   const { addNotification } = useNotification();
-  const isDynamicUrl = window.location.hostname.includes('github.io') || window.location.hostname.includes('usercontent.goog');
-  // The redirect URI now points to the dedicated callback.html file at the root of the domain.
-  const redirectUri = `${window.location.origin}/callback.html`;
+  // Show the developer note on any non-production looking URL.
+  const isDevEnvironment = window.location.hostname !== new URL(CANONICAL_URL).hostname;
+  
+  // The redirect URI now points to the dedicated callback.html file at the canonical URL.
+  const redirectUri = `${CANONICAL_URL}/callback.html`;
 
 
   const handleLogin = () => {
@@ -31,8 +34,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onTokenReceived }) => {
       }
 
       const handleAuthMessage = (event: MessageEvent) => {
-        // Use the generated redirectUri for a consistent origin check
-        if (event.origin !== window.location.origin || event.data.type !== 'spotify_auth') {
+        // We expect the message to come from our canonical origin, where callback.html is hosted.
+        if (event.origin !== new URL(CANONICAL_URL).origin || event.data.type !== 'spotify_auth') {
           return;
         }
 
@@ -83,7 +86,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onTokenReceived }) => {
             <p className="text-xs text-gray-500 mt-4">
                 A Spotify account is required to play.
             </p>
-            {isDynamicUrl && (
+            {isDevEnvironment && (
                 <div className="mt-6 text-xs text-yellow-300 bg-yellow-900/50 border border-yellow-700 p-3 rounded-lg max-w-sm mx-auto text-left">
                     <p className="font-bold text-sm mb-1">Developer Note:</p>
                     <p>For Spotify login to work, you must add this exact URL to your app's "Redirect URIs" in the Spotify Developer Dashboard:</p>

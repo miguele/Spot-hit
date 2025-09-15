@@ -23,12 +23,14 @@
         const error = params.get('error');
         
         if (window.opener) {
-          // Send a message to the main window with the authentication result
+          // Send a message to the main window with the authentication result.
+          // It's crucial to post to the opener's origin, as it might be a different
+          // Vercel preview URL than the canonical URL this callback is hosted on.
           window.opener.postMessage({
             type: 'spotify_auth',
             token: token,
             error: error
-          }, window.location.origin);
+          }, window.opener.origin);
         }
       }
       // The main window will close this popup once it receives the message.
