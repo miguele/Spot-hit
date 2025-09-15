@@ -1,4 +1,3 @@
-
 import React from 'react';
 import Button from './Button';
 import SpotifyLogo from './SpotifyLogo';
@@ -12,7 +11,9 @@ interface HomeScreenProps {
 
 const HomeScreen: React.FC<HomeScreenProps> = ({ onTokenReceived }) => {
   const { addNotification } = useNotification();
-  const isDynamicUrl = window.location.origin.includes('usercontent.goog');
+  const isDynamicUrl = window.location.hostname.includes('github.io') || window.location.hostname.includes('usercontent.goog');
+  const redirectUri = (window.location.origin + window.location.pathname).replace(/\/$/, '');
+
 
   const handleLogin = () => {
     try {
@@ -29,7 +30,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onTokenReceived }) => {
       }
 
       const handleAuthMessage = (event: MessageEvent) => {
-        // Ensure the message is from our own origin and is the one we expect
+        // Use the generated redirectUri for a consistent origin check
         if (event.origin !== window.location.origin || event.data.type !== 'spotify_auth') {
           return;
         }
@@ -85,7 +86,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onTokenReceived }) => {
                 <div className="mt-6 text-xs text-yellow-300 bg-yellow-900/50 border border-yellow-700 p-3 rounded-lg max-w-sm mx-auto text-left">
                     <p className="font-bold text-sm mb-1">Developer Note:</p>
                     <p>For Spotify login to work, you must add this exact URL to your app's "Redirect URIs" in the Spotify Developer Dashboard:</p>
-                    <p className="font-mono bg-black/50 px-2 py-1 rounded mt-2 break-all select-all">{window.location.origin}</p>
+                    <p className="font-mono bg-black/50 px-2 py-1 rounded mt-2 break-all select-all">{redirectUri}</p>
                 </div>
             )}
         </Card>

@@ -1,12 +1,12 @@
-
 import { CLIENT_ID, SCOPES } from '../config';
 
 export const generateAuthUrl = (): string => {
-    // Redirect to the application's root. The main index.tsx script will
-    // detect that it's running in a popup and handle the authentication
-    // callback, sending the token back to the main window. This avoids
-    // any 404 errors from the restrictive hosting server.
-    const REDIRECT_URI = window.location.origin;
+    // Construct the redirect URI from the full current location (origin + pathname)
+    // to ensure it works correctly when hosted in a subdirectory (e.g., GitHub Pages).
+    // We remove any trailing slash to keep the URL clean.
+    const fullPath = (window.location.origin + window.location.pathname).replace(/\/$/, '');
+    const REDIRECT_URI = fullPath;
+    
     const params = new URLSearchParams();
     params.append("client_id", CLIENT_ID);
     // 'token' specifies the Implicit Grant Flow.
