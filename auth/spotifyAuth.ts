@@ -40,6 +40,8 @@ export const generateAuthUrlAndVerifier = async (): Promise<{ authUrl: string; v
   params.append("scope", SCOPES);
   params.append("code_challenge_method", "S256");
   params.append("code_challenge", challenge);
+  // Force the consent screen to appear, helping to bypass caching issues during debugging.
+  params.append("show_dialog", "true");
 
   const authUrl = `https://accounts.spotify.com/authorize?${params.toString()}`;
   
