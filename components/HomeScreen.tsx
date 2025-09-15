@@ -16,7 +16,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onTokenReceived }) => {
   const isDevEnvironment = window.location.hostname !== new URL(CANONICAL_URL).hostname;
   
   // The redirect URI now points to the dedicated callback.html file at the canonical URL.
-  const redirectUri = `${CANONICAL_URL}/callback.html`;
+  const redirectUri = new URL('callback.html', CANONICAL_URL).href;
 
 
   const handleLogin = () => {

@@ -2,7 +2,8 @@ import { CLIENT_ID, SCOPES, CANONICAL_URL } from '../config';
 
 export const generateAuthUrl = (): string => {
     // The redirect URI must point to the dedicated callback handler page hosted at the canonical URL.
-    const REDIRECT_URI = `${CANONICAL_URL}/callback.html`;
+    // Using the URL constructor makes the path joining more robust.
+    const REDIRECT_URI = new URL('callback.html', CANONICAL_URL).href;
     
     const params = new URLSearchParams();
     params.append("client_id", CLIENT_ID);
