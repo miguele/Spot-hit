@@ -1,13 +1,8 @@
 import { CLIENT_ID, SCOPES } from '../config';
 
 export const generateAuthUrl = (): string => {
-    // Construct the redirect URI from the full current location (origin + pathname)
-    // to ensure it works correctly when hosted in a subdirectory (e.g., GitHub Pages).
-    // We remove any trailing slash to keep the URL clean.
-    const fullPath = (window.location.origin + window.location.pathname).replace(/\/$/, '');
-    
-    // The redirect URI must point to the dedicated callback handler page.
-    const REDIRECT_URI = `${fullPath}/callback.html`;
+    // The redirect URI must point to the dedicated callback handler page at the root of the domain.
+    const REDIRECT_URI = `${window.location.origin}/callback.html`;
     
     const params = new URLSearchParams();
     params.append("client_id", CLIENT_ID);
