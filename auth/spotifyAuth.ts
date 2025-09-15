@@ -1,20 +1,77 @@
 import { CLIENT_ID, SCOPES, CANONICAL_URL } from '../config';
 
-export const generateAuthUrl = (): string => {
-    // The redirect URI must point to the dedicated callback handler page hosted at the canonical URL.
-    // Using the URL constructor makes the path joining more robust.
-    const REDIRECT_URI = new URL('callback.html', CANONICAL_URL).href;
-    
-    const params = new URLSearchParams();
-    params.append("client_id", CLIENT_ID);
-    // 'token' specifies the Implicit Grant Flow.
-    params.append("response_type", "token");
-    params.append("redirect_uri", REDIRECT_URI);
-    params.append("scope", SCOPES);
+// --- PKCE Helper Functions ---
 
-    return `https://accounts.spotify.com/authorize?${params.toString()}`;
+const generateRandomString = (length: number): string => {
+  const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let text = '';
+  for (let i = 0; i < length; i++) {
+    text += possible.charAt(Math.floor(Math.random() * possible.length));
+  }
+  return text;
 };
 
-// The getAccessToken function is no longer needed with the Implicit Grant Flow
-// because the access token is received directly in the redirect URL hash.
-// This also removes the need for the CLIENT_SECRET on the client-side, which is more secure.
+const sha256 = async (plain: string): Promise<ArrayBuffer> => {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(plain);
+  return window.crypto.subtle.digest('SHA-256', data);
+};
+
+const base64encode = (input: ArrayBuffer): string => {
+  return btoa(String.fromCharCode(...new Uint8Array(input)))
+    .replace(/=/g, '')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_');
+};
+
+// --- Auth URL Generation ---
+
+export const generateAuthUrlAndVerifier = async (): Promise<{ authUrl: string; verifier: string }> => {
+  const verifier = generateRandomString(128);
+  const hashed = await sha256(verifier);
+  const challenge = base64encode(hashed);
+  
+  const REDIRECT_URI = new URL('callback.html', CANONICAL_URL).href;
+
+  const params = new URLSearchParams();
+  params.append("client_id", CLIENT_ID);
+  params.append("response_type", "code");
+  params.append("redirect_uri", REDIRECT_URI);
+  params.append("scope", SCOPES);
+  params.append("code_challenge_method", "S256");
+  params.append("code_challenge", challenge);
+
+  const authUrl = `https://accounts.spotify.com/authorize?${params.toString()}`;
+  
+  return { authUrl, verifier };
+};
+
+// --- Token Exchange ---
+
+export const exchangeCodeForToken = async (code: string, verifier: string): Promise<string> => {
+    const REDIRECT_URI = new URL('callback.html', CANONICAL_URL).href;
+
+    const params = new URLSearchParams();
+    params.append("client_id", CLIENT_ID);
+    params.append("grant_type", "authorization_code");
+    params.append("code", code);
+    params.append("redirect_uri", REDIRECT_URI);
+    params.append("code_verifier", verifier);
+    
+    const result = await fetch("https://accounts.spotify.com/api/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: params
+    });
+
+    if (!result.ok) {
+        const errorData = await result.json();
+        throw new Error(`Token exchange failed: ${errorData.error_description || 'Unknown error'}`);
+    }
+
+    const { access_token } = await result.json();
+    if (!access_token) {
+        throw new Error("Access token not found in response.");
+    }
+    return access_token;
+};

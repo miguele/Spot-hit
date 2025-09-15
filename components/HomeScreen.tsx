@@ -2,7 +2,7 @@ import React from 'react';
 import Button from './Button';
 import SpotifyLogo from './SpotifyLogo';
 import Card from './Card';
-import { generateAuthUrl } from '../auth/spotifyAuth';
+import { generateAuthUrlAndVerifier, exchangeCodeForToken } from '../auth/spotifyAuth';
 import { useNotification } from '../contexts/NotificationContext';
 import { CANONICAL_URL } from '../config';
 
@@ -19,9 +19,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onTokenReceived }) => {
   const redirectUri = new URL('callback.html', CANONICAL_URL).href;
 
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     try {
-      const authUrl = generateAuthUrl();
+      const { authUrl, verifier } = await generateAuthUrlAndVerifier();
+      localStorage.setItem('spotify_code_verifier', verifier);
+
       const width = 500, height = 650;
       const left = window.screen.width / 2 - width / 2;
       const top = window.screen.height / 2 - height / 2;
@@ -33,9 +35,9 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onTokenReceived }) => {
         return;
       }
 
-      const handleAuthMessage = (event: MessageEvent) => {
+      const handleAuthMessage = async (event: MessageEvent) => {
         // We expect the message to come from our canonical origin, where callback.html is hosted.
-        if (event.origin !== new URL(CANONICAL_URL).origin || event.data.type !== 'spotify_auth') {
+        if (event.origin !== new URL(CANONICAL_URL).origin || event.data.type !== 'spotify_auth_code') {
           return;
         }
 
@@ -46,11 +48,28 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onTokenReceived }) => {
           popup.close();
         }
 
-        const { token, error } = event.data;
-        if (token) {
-          onTokenReceived(token);
-        } else if (error) {
+        const { code, error } = event.data;
+
+        if (error) {
           addNotification(`Login failed: ${error}. Please try again.`, 'error');
+          localStorage.removeItem('spotify_code_verifier');
+          return;
+        }
+
+        if (code) {
+          try {
+            const storedVerifier = localStorage.getItem('spotify_code_verifier');
+            if (!storedVerifier) {
+              throw new Error("Authentication flow error: code verifier is missing.");
+            }
+            const token = await exchangeCodeForToken(code, storedVerifier);
+            onTokenReceived(token);
+          } catch (err: any) {
+            console.error("Token exchange failed:", err);
+            addNotification(err.message || "Failed to finalize login.", "error");
+          } finally {
+            localStorage.removeItem('spotify_code_verifier');
+          }
         }
       };
       
@@ -61,6 +80,10 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onTokenReceived }) => {
         if (!popup || popup.closed) {
           clearInterval(checkPopupClosed);
           window.removeEventListener('message', handleAuthMessage);
+          // Also clean up verifier if popup is closed manually
+           if (localStorage.getItem('spotify_code_verifier')) {
+              localStorage.removeItem('spotify_code_verifier');
+          }
         }
       }, 1000);
 

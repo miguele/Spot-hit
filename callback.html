@@ -17,21 +17,18 @@
   </style>
   <script>
     window.onload = function() {
-      if (window.location.hash) {
-        const params = new URLSearchParams(window.location.hash.substring(1));
-        const token = params.get('access_token');
-        const error = params.get('error');
-        
-        if (window.opener) {
-          // Send a message to the main window with the authentication result.
-          // It's crucial to post to the opener's origin, as it might be a different
-          // Vercel preview URL than the canonical URL this callback is hosted on.
-          window.opener.postMessage({
-            type: 'spotify_auth',
-            token: token,
-            error: error
-          }, window.opener.origin);
-        }
+      // For the Auth Code with PKCE flow, Spotify returns a 'code' in the search params.
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get('code');
+      const error = params.get('error');
+      
+      if (window.opener) {
+        // Send the code back to the main window to be exchanged for a token.
+        window.opener.postMessage({
+          type: 'spotify_auth_code',
+          code: code,
+          error: error
+        }, window.opener.origin);
       }
       // The main window will close this popup once it receives the message.
     };
