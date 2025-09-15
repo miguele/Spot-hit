@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import type { Game, Player, Song, TimelineSong } from '../types';
 import { getPlaylistTracks } from '../services/spotifyService';
+import { useNotification } from '../contexts/NotificationContext';
 import Card from './Card';
 import Button from './Button';
 import Input from './Input';
@@ -48,6 +49,9 @@ const GameScreen: React.FC<GameScreenProps> = ({ game, currentUser, accessToken,
   const [turnState, setTurnState] = useState<'GUESSING' | 'REVEALED'>('GUESSING');
   const [loading, setLoading] = useState(true);
   
+  const { addNotification } = useNotification();
+  const audioRef = useRef<HTMLAudioElement>(null);
+  
   const currentPlayer = game.players[currentPlayerIndex];
   const isMyTurn = currentPlayer.id === currentUser.id;
 
@@ -55,23 +59,51 @@ const GameScreen: React.FC<GameScreenProps> = ({ game, currentUser, accessToken,
     if (game.playlist) {
       setLoading(true);
       getPlaylistTracks(game.playlist.id, accessToken).then(playlistSongs => {
-        const playableSongs = playlistSongs.filter(s => s.year); // Filter out songs without a year
+        const playableSongs = playlistSongs.filter(s => s.year); // Filter out songs without a valid year
         const shuffled = [...playableSongs].sort(() => 0.5 - Math.random());
         setSongs(shuffled);
         if (shuffled.length > 0) {
             setCurrentSong(shuffled[0]);
         } else {
-            // Handle case where playlist has no playable songs
-            alert("This playlist doesn't have any songs suitable for the game. Please pick another one.");
+            addNotification("This playlist has no playable songs with previews. Please select another one.", "error");
         }
         setLoading(false);
       }).catch(err => {
         console.error("Failed to load playlist tracks", err);
         setLoading(false);
-        alert("Failed to load tracks for the selected playlist.");
+        addNotification("Failed to load tracks for the selected playlist.", "error");
       });
     }
-  }, [game.playlist, accessToken]);
+  }, [game.playlist, accessToken, addNotification]);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    if (currentSong && turnState === 'GUESSING') {
+      audio.src = currentSong.previewUrl!; // We know previewUrl exists due to service filtering
+      audio.volume = 0.4;
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(error => {
+          console.error("Audio playback error:", error);
+          addNotification("Couldn't play audio automatically. Make sure the browser allows autoplay.", "info");
+        });
+      }
+    } else {
+      audio.pause();
+    }
+  }, [currentSong, turnState, addNotification]);
+
+  // Cleanup effect to ensure audio stops on unmount
+  useEffect(() => {
+    const audio = audioRef.current;
+    return () => {
+        if (audio) {
+            audio.pause();
+        }
+    };
+  }, []);
 
   const nextTurn = useCallback(() => {
     const maxRounds = Math.min(game.totalRounds, songs.length);
@@ -91,6 +123,10 @@ const GameScreen: React.FC<GameScreenProps> = ({ game, currentUser, accessToken,
 
   const handleGuess = () => {
     if (!currentSong || !guess) return;
+
+    if (audioRef.current) {
+        audioRef.current.pause();
+    }
 
     let points = 0;
     let resultMessage = '';
@@ -157,56 +193,59 @@ const GameScreen: React.FC<GameScreenProps> = ({ game, currentUser, accessToken,
 
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-      <div className="lg:col-span-1 order-2 lg:order-1">
-        <Card>
-          <h2 className="text-2xl font-bold mb-4">Scoreboard</h2>
-          <ul className="space-y-3">
-            {game.players.map(p => (
-              <li key={p.id} className={`flex justify-between items-center p-3 rounded-lg transition-all duration-300 ${p.id === currentPlayer.id ? 'bg-[#1DB954] text-black' : 'bg-gray-700'}`}>
-                <div className="flex items-center gap-3">
-                  <img src={p.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${p.name}`} alt={p.name} className="w-10 h-10 rounded-full" />
-                  <span className="font-semibold">{p.name}</span>
-                </div>
-                <span className="text-2xl font-bold">{scores[p.id]}</span>
-              </li>
-            ))}
-          </ul>
-        </Card>
+    <>
+      <audio ref={audioRef} loop />
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <div className="lg:col-span-1 order-2 lg:order-1">
+          <Card>
+            <h2 className="text-2xl font-bold mb-4">Scoreboard</h2>
+            <ul className="space-y-3">
+              {game.players.map(p => (
+                <li key={p.id} className={`flex justify-between items-center p-3 rounded-lg transition-all duration-300 ${p.id === currentPlayer.id ? 'bg-[#1DB954] text-black' : 'bg-gray-700'}`}>
+                  <div className="flex items-center gap-3">
+                    <img src={p.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${p.name}`} alt={p.name} className="w-10 h-10 rounded-full" />
+                    <span className="font-semibold">{p.name}</span>
+                  </div>
+                  <span className="text-2xl font-bold">{scores[p.id]}</span>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        </div>
+
+        <div className="lg:col-span-3 order-1 lg:order-2">
+          <Card className="text-center">
+            <p className="text-gray-400">Round {round + 1} / {Math.min(game.totalRounds, songs.length)}</p>
+            <h2 className="text-3xl font-bold mt-1 mb-6">
+              It's <span className="text-[#1DB954]">{isMyTurn ? "Your" : `${currentPlayer.name}'s`}</span> Turn!
+            </h2>
+
+            <SongCard song={currentSong} revealed={revealed} />
+            
+            <div className="mt-8 max-w-md mx-auto">
+              {turnState === 'GUESSING' && (
+                  <div className="space-y-4">
+                      {getGuessInput()}
+                      <Button onClick={handleGuess} disabled={!isMyTurn || !guess}>
+                          Submit Guess
+                      </Button>
+                  </div>
+              )}
+
+              {turnState === 'REVEALED' && (
+                  <div className="space-y-4">
+                      <p className="text-xl font-semibold text-yellow-400 h-7">{message}</p>
+                      <Button onClick={nextTurn} disabled={!isMyTurn}>
+                        Next Round
+                      </Button>
+                  </div>
+              )}
+              {!isMyTurn && turnState === 'GUESSING' && <p className="text-gray-400 mt-4">Waiting for {currentPlayer.name} to guess...</p>}
+            </div>
+          </Card>
+        </div>
       </div>
-
-      <div className="lg:col-span-3 order-1 lg:order-2">
-        <Card className="text-center">
-          <p className="text-gray-400">Round {round + 1} / {Math.min(game.totalRounds, songs.length)}</p>
-          <h2 className="text-3xl font-bold mt-1 mb-6">
-            It's <span className="text-[#1DB954]">{isMyTurn ? "Your" : `${currentPlayer.name}'s`}</span> Turn!
-          </h2>
-
-          <SongCard song={currentSong} revealed={revealed} />
-          
-          <div className="mt-8 max-w-md mx-auto">
-            {turnState === 'GUESSING' && (
-                <div className="space-y-4">
-                    {getGuessInput()}
-                    <Button onClick={handleGuess} disabled={!isMyTurn || !guess}>
-                        Submit Guess
-                    </Button>
-                </div>
-            )}
-
-            {turnState === 'REVEALED' && (
-                 <div className="space-y-4">
-                    <p className="text-xl font-semibold text-yellow-400 h-7">{message}</p>
-                    <Button onClick={nextTurn} disabled={!isMyTurn}>
-                       Next Round
-                    </Button>
-                </div>
-            )}
-             {!isMyTurn && turnState === 'GUESSING' && <p className="text-gray-400 mt-4">Waiting for {currentPlayer.name} to guess...</p>}
-          </div>
-        </Card>
-      </div>
-    </div>
+    </>
   );
 };
 

@@ -38,7 +38,7 @@ export const getUserPlaylists = async (token: string): Promise<Playlist[]> => {
 export const getPlaylistTracks = async (playlistId: string, token:string): Promise<Song[]> => {
     const data = await fetchWebApi(`playlists/${playlistId}/tracks?fields=items(track(id,name,preview_url,artists(name),album(images,release_date)))`, 'GET', token);
     return data.items
-        .filter((item: any) => item.track && item.track.album && item.track.album.release_date) // Ensure track and release date exist
+        .filter((item: any) => item.track && item.track.album && item.track.album.release_date && item.track.preview_url) // Ensure preview_url exists
         .map((item: any): Song => ({
             id: item.track.id,
             title: item.track.name,
