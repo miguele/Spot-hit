@@ -52,6 +52,14 @@
 </script>
 </head>
   <body class="bg-black text-white">
+    <script>
+      // This function is called by the Spotify SDK when it's ready.
+      // We dispatch a custom event to decouple the SDK's global callback
+      // from the React component lifecycle, preventing race conditions.
+      window.onSpotifyWebPlaybackSDKReady = () => {
+        window.dispatchEvent(new Event('spotify-sdk-ready'));
+      };
+    </script>
     <script src="https://sdk.scdn.co/spotify-player.js"></script>
     <div id="root"></div>
     <script type="module" src="./index.tsx"></script>

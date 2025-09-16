@@ -13,9 +13,10 @@ interface SpotifyPlayerProps {
   songUri: string;
   playbackState: 'IDLE' | 'PLAYING' | 'PAUSED';
   onReady: () => void;
+  onAuthError: () => void;
 }
 
-const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({ token, songUri, playbackState, onReady }) => {
+const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({ token, songUri, playbackState, onReady, onAuthError }) => {
   const playerRef = useRef<any>(null);
   const [deviceId, setDeviceId] = useState<string | null>(null);
   const [isPlayerReady, setIsPlayerReady] = useState(false);
@@ -23,14 +24,6 @@ const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({ token, songUri, playbackS
   const currentSongUri = useRef<string | null>(null);
 
   useEffect(() => {
-    const script = document.querySelector('script[src="https://sdk.scdn.co/spotify-player.js"]');
-    
-    if (!script) {
-        console.error("Spotify SDK script not found!");
-        return;
-    }
-
-    // This function initializes the Spotify player.
     const initializePlayer = () => {
         if (!window.Spotify || playerRef.current) {
             return;
@@ -63,7 +56,12 @@ const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({ token, songUri, playbackS
 
         player.addListener('authentication_error', ({ message }: { message: string }) => {
             console.error('Authentication Error:', message);
-            addNotification(`Spotify Auth Error: ${message}`, "error");
+            // The error message from the SDK is concise, e.g., "Invalid token scopes."
+            if (message.toLowerCase().includes('invalid token scopes')) {
+                onAuthError();
+            } else {
+                addNotification(`Spotify Auth Error: ${message}`, "error");
+            }
         });
 
         player.addListener('account_error', ({ message }: { message: string }) => {
@@ -79,23 +77,24 @@ const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({ token, songUri, playbackS
 
         playerRef.current = player;
     };
-    
-    // The SDK defines this global function. We set it up to initialize our player.
-    window.onSpotifyWebPlaybackSDKReady = initializePlayer;
 
-    // If the SDK is already loaded, we might need to manually trigger initialization
+    // If the SDK is already loaded when this component mounts, initialize immediately.
     if (window.Spotify) {
-        initializePlayer();
+      initializePlayer();
+    } else {
+      // Otherwise, wait for our custom event from index.html that signals SDK readiness.
+      window.addEventListener('spotify-sdk-ready', initializePlayer);
     }
 
     return () => {
-      // Disconnect the player when the component unmounts
+      // Clean up the event listener and disconnect the player when the component unmounts.
+      window.removeEventListener('spotify-sdk-ready', initializePlayer);
       if (playerRef.current) {
         playerRef.current.disconnect();
         playerRef.current = null;
       }
     };
-  }, [token, onReady, addNotification]);
+  }, [token, onReady, addNotification, onAuthError]);
 
   const playSong = async (uri: string) => {
       if (!deviceId) {

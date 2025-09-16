@@ -61,6 +61,11 @@ const App: React.FC = () => {
     addNotification("You have been logged out.", "info");
   }, [addNotification]);
 
+  const handleAuthError = useCallback(() => {
+    handleLogout();
+    addNotification("Permissions missing for playback. Please log in again to grant access.", "error");
+  }, [handleLogout, addNotification]);
+
   const handleCreateGame = useCallback((gameMode: GameMode) => {
     if (!currentUser) return;
     const gameCode = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -157,7 +162,7 @@ const App: React.FC = () => {
           />
         );
       case 'GAME':
-        return game && currentUser && accessToken && <GameScreen game={game} currentUser={currentUser} onEndGame={handleEndGame} accessToken={accessToken} />;
+        return game && currentUser && accessToken && <GameScreen game={game} currentUser={currentUser} onEndGame={handleEndGame} accessToken={accessToken} onAuthError={handleAuthError} />;
       case 'RESULTS':
         return game && <ResultsScreen game={game} onPlayAgain={handlePlayAgain} />;
       default:

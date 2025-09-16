@@ -12,6 +12,7 @@ interface GameScreenProps {
   currentUser: Player;
   accessToken: string;
   onEndGame: (finalScores: Record<string, number>) => void;
+  onAuthError: () => void;
 }
 
 const SongCard: React.FC<{ song: Song, revealed: boolean }> = ({ song, revealed }) => {
@@ -37,7 +38,7 @@ const SongCard: React.FC<{ song: Song, revealed: boolean }> = ({ song, revealed 
 };
 
 
-const GameScreen: React.FC<GameScreenProps> = ({ game, currentUser, accessToken, onEndGame }) => {
+const GameScreen: React.FC<GameScreenProps> = ({ game, currentUser, accessToken, onEndGame, onAuthError }) => {
   const [songs, setSongs] = useState<Song[]>([]);
   const [currentSong, setCurrentSong] = useState<Song | null>(null);
   const [round, setRound] = useState(0);
@@ -49,6 +50,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ game, currentUser, accessToken,
   const [turnState, setTurnState] = useState<'GUESSING' | 'REVEALED'>('GUESSING');
   const [loading, setLoading] = useState(true);
   const [playbackState, setPlaybackState] = useState<'IDLE' | 'PLAYING' | 'PAUSED'>('IDLE');
+  const [isPlayerReady, setIsPlayerReady] = useState(false);
   
   const { addNotification } = useNotification();
   
@@ -150,7 +152,13 @@ const GameScreen: React.FC<GameScreenProps> = ({ game, currentUser, accessToken,
   const onPlayerReady = () => {
     if (isHost) {
         addNotification("Spotify Player connected!", "success");
-        setPlaybackState('PLAYING');
+        setIsPlayerReady(true);
+    }
+  };
+
+  const handleInitialPlay = () => {
+    if (isHost) {
+      setPlaybackState('PLAYING');
     }
   };
 
@@ -174,6 +182,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ game, currentUser, accessToken,
             songUri={currentSong.uri}
             onReady={onPlayerReady}
             playbackState={playbackState}
+            onAuthError={onAuthError}
         />
       )}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
@@ -206,11 +215,23 @@ const GameScreen: React.FC<GameScreenProps> = ({ game, currentUser, accessToken,
             <div className="mt-8 max-w-md mx-auto">
               {turnState === 'GUESSING' && (
                   <div className="space-y-4">
-                      {/* FIX: Removed redundant `turnState === 'REVEALED'` check which caused a type error. */}
-                      <Input type="number" placeholder="YYYY" value={guess} onChange={(e) => setGuess(e.target.value)} disabled={!isMyTurn} />
-                      <Button onClick={handleGuess} disabled={!isMyTurn || !guess}>
-                          Submit Guess
-                      </Button>
+                      {isHost && !isPlayerReady && <p className="text-gray-300 animate-pulse">Connecting to Spotify player...</p>}
+                      {isHost && isPlayerReady && playbackState === 'IDLE' && (
+                          <div className="animate-fade-in-up">
+                              <p className="text-gray-300 mb-4">Click to start the music for the first round.</p>
+                              <Button onClick={handleInitialPlay}>Start Music</Button>
+                          </div>
+                      )}
+                      {!isHost && playbackState === 'IDLE' && <p className="text-gray-300 animate-pulse">Waiting for host to start the music...</p>}
+
+                      {playbackState !== 'IDLE' && (
+                          <>
+                              <Input type="number" placeholder="YYYY" value={guess} onChange={(e) => setGuess(e.target.value)} disabled={!isMyTurn} />
+                              <Button onClick={handleGuess} disabled={!isMyTurn || !guess}>
+                                  Submit Guess
+                              </Button>
+                          </>
+                      )}
                   </div>
               )}
 
@@ -222,7 +243,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ game, currentUser, accessToken,
                       </Button>
                   </div>
               )}
-              {!isMyTurn && turnState === 'GUESSING' && <p className="text-gray-400 mt-4">Waiting for {currentPlayer.name} to guess...</p>}
+              {!isMyTurn && turnState === 'GUESSING' && playbackState !== 'IDLE' && <p className="text-gray-400 mt-4">Waiting for {currentPlayer.name} to guess...</p>}
             </div>
           </Card>
         </div>
