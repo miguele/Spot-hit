@@ -18,7 +18,6 @@ interface LobbyScreenProps {
 
 const LobbyScreen: React.FC<LobbyScreenProps> = ({ game, currentUser, playlists, onCreateGame, onJoinGame, onSelectPlaylist, onStartGame, onLogout }) => {
   const [joinCode, setJoinCode] = useState('');
-  const [selectedMode, setSelectedMode] = useState<GameMode | null>(null);
 
   const isHost = game?.host.id === currentUser.id;
   
@@ -102,17 +101,6 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ game, currentUser, playlists,
     );
   }
   
-  const GameModeCard: React.FC<{mode: GameMode, title: string, description: string}> = ({ mode, title, description }) => (
-    <div 
-        onClick={() => setSelectedMode(mode)}
-        className={`p-6 border-2 rounded-xl cursor-pointer transition-all duration-200 ${selectedMode === mode ? 'border-[#1DB954] bg-[#1DB954]/10' : 'border-gray-700 hover:border-gray-500'}`}
-    >
-        <h3 className="text-xl font-bold text-white">{title}</h3>
-        <p className="text-gray-400 mt-1">{description}</p>
-    </div>
-  );
-
-
   return (
     <>
         <UserProfileHeader />
@@ -121,11 +109,11 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ game, currentUser, playlists,
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl">
                 <Card>
                     <h2 className="text-3xl font-bold mb-6 text-center">Create Game</h2>
-                    <div className="space-y-4 mb-6">
-                       <GameModeCard mode={GameMode.GuessTheYear} title="Guess the Year" description="The classic mode. Guess the release year of the song." />
-                       <GameModeCard mode={GameMode.GuessTheSong} title="Guess the Song" description="Name that tune! Guess the song title and artist." />
+                    <div className="p-6 border-2 rounded-xl border-[#1DB954] bg-[#1DB954]/10 mb-6">
+                       <h3 className="text-xl font-bold text-white">Guess the Year</h3>
+                       <p className="text-gray-400 mt-1">The classic mode. Guess the release year of the song.</p>
                     </div>
-                    <Button onClick={() => selectedMode && onCreateGame(selectedMode)} disabled={!selectedMode} className="w-full">Create New Game</Button>
+                    <Button onClick={() => onCreateGame(GameMode.GuessTheYear)} className="w-full">Create New Game</Button>
                 </Card>
                 <Card>
                     <h2 className="text-3xl font-bold mb-6 text-center">Join Game</h2>

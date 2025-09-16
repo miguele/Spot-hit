@@ -12,4 +12,6 @@ export const CANONICAL_URL = "https://spot-hit.vercel.app/";
 export const SCOPES = [
     "user-read-private",
     "playlist-read-private",
+    "streaming", // Required for Web Playback SDK
+    "user-read-email", // Required for Web Playback SDK
 ].join(" ");

@@ -3,14 +3,15 @@ export type NotificationType = 'success' | 'error' | 'info';
 
 export enum GameMode {
   GuessTheYear = 'GUESS_THE_YEAR',
-  GuessTheSong = 'GUESS_THE_SONG',
-  Chronological = 'CHRONOLOGICAL',
+  // GuessTheSong = 'GUESS_THE_SONG', // Removed AI mode
+  // Chronological = 'CHRONOLOGICAL',
 }
 
 export interface Player {
   id: string;
   name: string;
   avatarUrl?: string;
+  isPremium?: boolean;
 }
 
 export interface Song {
@@ -19,7 +20,8 @@ export interface Song {
   artist: string;
   year: number;
   albumArtUrl?: string;
-  previewUrl?: string;
+  previewUrl?: string; // Will be unused but kept for structure
+  uri: string; // Spotify URI is needed for playback SDK
 }
 
 export interface Playlist {
@@ -32,7 +34,6 @@ export interface Playlist {
 export interface TimelineSong extends Song {
     placement: 'CORRECT' | 'INCORRECT' | 'PENDING';
 }
-
 
 export interface Game {
   code: string;

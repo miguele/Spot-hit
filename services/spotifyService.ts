@@ -13,7 +13,9 @@ const fetchWebApi = async (endpoint: string, method: string, token: string, body
     if (!res.ok) {
         throw new Error(`Spotify API error: ${res.statusText}`);
     }
-    return res.json();
+    // Handle cases where response might be empty
+    const text = await res.text();
+    return text ? JSON.parse(text) : {};
 }
 
 export const getUserProfile = async (token: string): Promise<Player> => {
@@ -22,6 +24,7 @@ export const getUserProfile = async (token: string): Promise<Player> => {
         id: data.id,
         name: data.display_name || data.id,
         avatarUrl: data.images?.[0]?.url,
+        isPremium: data.product === 'premium',
     };
 };
 
@@ -36,16 +39,17 @@ export const getUserPlaylists = async (token: string): Promise<Playlist[]> => {
 };
 
 export const getPlaylistTracks = async (playlistId: string, token:string): Promise<Song[]> => {
-    const data = await fetchWebApi(`playlists/${playlistId}/tracks?fields=items(track(id,name,preview_url,artists(name),album(images,release_date)))`, 'GET', token);
+    const data = await fetchWebApi(`playlists/${playlistId}/tracks?fields=items(track(id,name,uri,artists(name),album(images,release_date)))`, 'GET', token);
     return data.items
-        .filter((item: any) => item.track && item.track.album && item.track.album.release_date && item.track.preview_url) // Ensure preview_url exists
+        .filter((item: any) => item.track && item.track.album && item.track.album.release_date) // Ensure basic track data exists
         .map((item: any): Song => ({
             id: item.track.id,
             title: item.track.name,
             artist: item.track.artists.map((a: any) => a.name).join(', '),
             year: parseInt(item.track.album.release_date.substring(0, 4), 10),
             albumArtUrl: item.track.album.images?.[0]?.url,
-            previewUrl: item.track.preview_url,
+            uri: item.track.uri,
+            previewUrl: null, // No longer using preview URLs
         }))
-        .filter((song: Song) => song.id); // Filter out any potential null ID tracks
+        .filter((song: Song) => song.id && song.uri && !isNaN(song.year)); // Filter out tracks without URI or invalid year
 };

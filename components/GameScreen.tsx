@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import type { Game, Player, Song, TimelineSong } from '../types';
 import { getPlaylistTracks } from '../services/spotifyService';
 import { useNotification } from '../contexts/NotificationContext';
 import Card from './Card';
 import Button from './Button';
 import Input from './Input';
+import SpotifyPlayer from './SpotifyPlayer';
 
 interface GameScreenProps {
   game: Game;
@@ -45,65 +46,55 @@ const GameScreen: React.FC<GameScreenProps> = ({ game, currentUser, accessToken,
   const [guess, setGuess] = useState('');
   const [revealed, setRevealed] = useState(false);
   const [message, setMessage] = useState('');
-  const [timeline, setTimeline] = useState<TimelineSong[]>([]);
   const [turnState, setTurnState] = useState<'GUESSING' | 'REVEALED'>('GUESSING');
   const [loading, setLoading] = useState(true);
+  const [playbackState, setPlaybackState] = useState<'IDLE' | 'PLAYING' | 'PAUSED'>('IDLE');
   
   const { addNotification } = useNotification();
-  const audioRef = useRef<HTMLAudioElement>(null);
   
   const currentPlayer = game.players[currentPlayerIndex];
   const isMyTurn = currentPlayer.id === currentUser.id;
+  const isHost = game.host.id === currentUser.id;
 
   useEffect(() => {
-    if (game.playlist) {
-      setLoading(true);
-      getPlaylistTracks(game.playlist.id, accessToken).then(playlistSongs => {
-        const playableSongs = playlistSongs.filter(s => s.year); // Filter out songs without a valid year
-        const shuffled = [...playableSongs].sort(() => 0.5 - Math.random());
-        setSongs(shuffled);
-        if (shuffled.length > 0) {
-            setCurrentSong(shuffled[0]);
-        } else {
-            addNotification("This playlist has no playable songs with previews. Please select another one.", "error");
-        }
-        setLoading(false);
-      }).catch(err => {
-        console.error("Failed to load playlist tracks", err);
-        setLoading(false);
-        addNotification("Failed to load tracks for the selected playlist.", "error");
-      });
-    }
-  }, [game.playlist, accessToken, addNotification]);
-
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    if (currentSong && turnState === 'GUESSING') {
-      audio.src = currentSong.previewUrl!; // We know previewUrl exists due to service filtering
-      audio.volume = 0.4;
-      const playPromise = audio.play();
-      if (playPromise !== undefined) {
-        playPromise.catch(error => {
-          console.error("Audio playback error:", error);
-          addNotification("Couldn't play audio automatically. Make sure the browser allows autoplay.", "info");
-        });
-      }
-    } else {
-      audio.pause();
-    }
-  }, [currentSong, turnState, addNotification]);
-
-  // Cleanup effect to ensure audio stops on unmount
-  useEffect(() => {
-    const audio = audioRef.current;
-    return () => {
-        if (audio) {
-            audio.pause();
+    const loadGameSongs = async () => {
+        if (!game.playlist) return;
+        setLoading(true);
+        try {
+            const allSongs = await getPlaylistTracks(game.playlist.id, accessToken);
+            
+            if (allSongs.length === 0) {
+                addNotification("This playlist has no valid songs. Please select another one.", "error");
+                setSongs([]);
+                setCurrentSong(null);
+            } else {
+                const shuffled = [...allSongs].sort(() => 0.5 - Math.random());
+                setSongs(shuffled);
+                setCurrentSong(shuffled[0]);
+                addNotification(`Loaded ${shuffled.length} songs from your playlist!`, 'success');
+            }
+        } catch (err) {
+            console.error("Failed to load playlist tracks", err);
+            addNotification("Failed to load tracks for the selected playlist.", "error");
+        } finally {
+            setLoading(false);
         }
     };
-  }, []);
+    loadGameSongs();
+  }, [game.playlist, accessToken, addNotification]);
+  
+  // Auto-play song for 20 seconds
+  useEffect(() => {
+    // FIX: Use ReturnType<typeof setTimeout> for browser compatibility instead of NodeJS.Timeout.
+    let timer: ReturnType<typeof setTimeout>;
+    if (playbackState === 'PLAYING' && isHost) {
+      timer = setTimeout(() => {
+        setPlaybackState('PAUSED');
+      }, 20000); // Play for 20 seconds
+    }
+    return () => clearTimeout(timer);
+  }, [playbackState, isHost]);
+
 
   const nextTurn = useCallback(() => {
     const maxRounds = Math.min(game.totalRounds, songs.length);
@@ -119,51 +110,35 @@ const GameScreen: React.FC<GameScreenProps> = ({ game, currentUser, accessToken,
     setGuess('');
     setMessage('');
     setTurnState('GUESSING');
-  }, [round, game.totalRounds, game.players.length, songs, onEndGame, scores]);
+    if (isHost) {
+      setPlaybackState('PLAYING');
+    }
+  }, [round, game.totalRounds, game.players.length, songs, onEndGame, scores, isHost]);
 
-  const handleGuess = () => {
+  const handleGuess = async () => {
     if (!currentSong || !guess) return;
-
-    if (audioRef.current) {
-        audioRef.current.pause();
+    
+    if (isHost) {
+        setPlaybackState('PAUSED');
     }
 
     let points = 0;
     let resultMessage = '';
     
-    if (game.mode === 'GUESS_THE_YEAR') {
-        const guessedYear = parseInt(guess, 10);
-        const diff = Math.abs(guessedYear - currentSong.year);
+    const guessedYear = parseInt(guess, 10);
+    const diff = Math.abs(guessedYear - currentSong.year);
 
-        if (diff === 0) {
-            points = 3;
-            resultMessage = `Perfect! +3 points`;
-        } else if (diff <= 2) {
-            points = 2;
-            resultMessage = `So close! +2 points`;
-        } else if (diff <= 5) {
-            points = 1;
-            resultMessage = `Good guess! +1 point`;
-        } else {
-            resultMessage = `Not quite! The year was ${currentSong.year}.`;
-        }
-    } else if (game.mode === 'GUESS_THE_SONG') {
-        const cleanGuess = guess.toLowerCase().trim();
-        const titleMatch = currentSong.title.toLowerCase().includes(cleanGuess);
-        const artistMatch = currentSong.artist.toLowerCase().includes(cleanGuess);
-
-        if (titleMatch && artistMatch) {
-            points = 3;
-            resultMessage = 'Correct title and artist! +3 points';
-        } else if (titleMatch) {
-            points = 1;
-            resultMessage = `You got the title! +1 point`;
-        } else if (artistMatch) {
-            points = 1;
-            resultMessage = `You got the artist! +1 point`;
-        } else {
-            resultMessage = `The answer was ${currentSong.title} by ${currentSong.artist}.`;
-        }
+    if (diff === 0) {
+        points = 3;
+        resultMessage = `Perfect! +3 points`;
+    } else if (diff <= 2) {
+        points = 2;
+        resultMessage = `So close! +2 points`;
+    } else if (diff <= 5) {
+        points = 1;
+        resultMessage = `Good guess! +1 point`;
+    } else {
+        resultMessage = `Not quite! The year was ${currentSong.year}.`;
     }
 
     setScores(prev => ({ ...prev, [currentPlayer.id]: (prev[currentPlayer.id] || 0) + points }));
@@ -172,29 +147,35 @@ const GameScreen: React.FC<GameScreenProps> = ({ game, currentUser, accessToken,
     setTurnState('REVEALED');
   };
 
+  const onPlayerReady = () => {
+    if (isHost) {
+        addNotification("Spotify Player connected!", "success");
+        setPlaybackState('PLAYING');
+    }
+  };
+
   if (loading) {
     return <div className="text-center text-2xl animate-pulse">Loading playlist...</div>;
+  }
+  
+  if (isHost && !game.host.isPremium) {
+     return <div className="text-center text-2xl text-red-500">Error: The host must have a Spotify Premium account to play.</div>;
   }
 
   if (!currentSong) {
     return <div className="text-center text-2xl">Could not load any songs from the playlist. Please go back and select another one.</div>;
   }
   
-  const getGuessInput = () => {
-    switch (game.mode) {
-        case 'GUESS_THE_YEAR':
-            return <Input type="number" placeholder="YYYY" value={guess} onChange={(e) => setGuess(e.target.value)} disabled={!isMyTurn || turnState === 'REVEALED'} />;
-        case 'GUESS_THE_SONG':
-            return <Input type="text" placeholder="Song Title or Artist" value={guess} onChange={(e) => setGuess(e.target.value)} disabled={!isMyTurn || turnState === 'REVEALED'}/>;
-        default:
-            return null;
-    }
-  }
-
-
   return (
     <>
-      <audio ref={audioRef} loop />
+      {isHost && (
+        <SpotifyPlayer
+            token={accessToken}
+            songUri={currentSong.uri}
+            onReady={onPlayerReady}
+            playbackState={playbackState}
+        />
+      )}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         <div className="lg:col-span-1 order-2 lg:order-1">
           <Card>
@@ -225,7 +206,8 @@ const GameScreen: React.FC<GameScreenProps> = ({ game, currentUser, accessToken,
             <div className="mt-8 max-w-md mx-auto">
               {turnState === 'GUESSING' && (
                   <div className="space-y-4">
-                      {getGuessInput()}
+                      {/* FIX: Removed redundant `turnState === 'REVEALED'` check which caused a type error. */}
+                      <Input type="number" placeholder="YYYY" value={guess} onChange={(e) => setGuess(e.target.value)} disabled={!isMyTurn} />
                       <Button onClick={handleGuess} disabled={!isMyTurn || !guess}>
                           Submit Guess
                       </Button>

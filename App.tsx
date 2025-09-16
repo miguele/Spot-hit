@@ -108,8 +108,12 @@ const App: React.FC = () => {
 
   const handleStartGame = useCallback(() => {
     if (game && game.playlist) {
-      setGame(prevGame => prevGame ? { ...prevGame, gameState: 'IN_PROGRESS' } : null);
-      setScreen('GAME');
+      if (game.host.isPremium) {
+        setGame(prevGame => prevGame ? { ...prevGame, gameState: 'IN_PROGRESS' } : null);
+        setScreen('GAME');
+      } else {
+        addNotification('The game host needs a Spotify Premium account to play.', 'error');
+      }
     } else {
       addNotification('Please select a playlist first!', 'info');
     }
