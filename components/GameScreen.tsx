@@ -149,12 +149,12 @@ const GameScreen: React.FC<GameScreenProps> = ({ game, currentUser, accessToken,
     setTurnState('REVEALED');
   };
 
-  const onPlayerReady = () => {
+  const onPlayerReady = useCallback(() => {
     if (isHost) {
         addNotification("Spotify Player connected!", "success");
         setIsPlayerReady(true);
     }
-  };
+  }, [isHost, addNotification]);
 
   const handleInitialPlay = () => {
     if (isHost) {
