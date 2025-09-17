@@ -41,8 +41,12 @@ const App: React.FC = () => {
            setScreen('GAME');
         } else if (gameData.gameState === 'FINISHED') {
            setScreen('RESULTS');
-        } else if (gameData.gameState === 'WAITING' && player) {
-            setScreen('LOBBY');
+        } else if (gameData.gameState === 'WAITING') {
+            // Check if current player is part of the game before moving to lobby
+            const currentPlayerId = player?.id;
+            if (currentPlayerId && gameData.players.some(p => p.id === currentPlayerId)) {
+               setScreen('LOBBY');
+            }
         }
       } else {
         addNotification("The game session has ended or could not be found.", "error");
@@ -131,6 +135,8 @@ const App: React.FC = () => {
       currentSong: null,
       timeline: [],
       songs: [],
+      turnState: 'GUESSING',
+      lastGuessResult: null,
     };
     
     try {
@@ -207,6 +213,7 @@ const App: React.FC = () => {
             addNotification(`Successfully joined game ${gameCode} as ${playerName}!`, "success");
             setPlayer(guestPlayer);
             subscribeToGameUpdates(gameCode);
+            setScreen('LOBBY'); // Explicitly move to lobby for guest
         } else {
             addNotification("Invalid code. No game found with this code.", "error");
         }
@@ -248,6 +255,8 @@ const App: React.FC = () => {
             songs: gameSongs,
             currentSong: gameSongs[0],
             currentRound: 0,
+            turnState: 'GUESSING',
+            lastGuessResult: null,
         });
 
       } catch (error) {

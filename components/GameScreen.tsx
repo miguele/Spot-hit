@@ -41,13 +41,14 @@ const SongCard: React.FC<{ song: Song, revealed: boolean }> = ({ song, revealed 
 
 const GameScreen: React.FC<GameScreenProps> = ({ game, currentUser, accessToken, onEndGame, onAuthError }) => {
   const [guess, setGuess] = useState('');
-  const [revealed, setRevealed] = useState(false);
-  const [message, setMessage] = useState('');
-  const [turnState, setTurnState] = useState<'GUESSING' | 'REVEALED'>('GUESSING');
   const [playbackState, setPlaybackState] = useState<'IDLE' | 'PLAYING' | 'PAUSED'>('IDLE');
   const [isPlayerReady, setIsPlayerReady] = useState(false);
   
   const { addNotification } = useNotification();
+
+  // Deriving state from props for synchronization
+  const revealed = game.turnState === 'REVEALED';
+  const turnState = game.turnState;
   
   const currentPlayer = game.players.find(p => p.id === game.players[game.currentRound % game.players.length].id)!;
   const isMyTurn = currentPlayer.id === currentUser.id;
@@ -79,15 +80,24 @@ const GameScreen: React.FC<GameScreenProps> = ({ game, currentUser, accessToken,
     await updateDoc(gameRef, {
         currentRound: nextRound,
         currentSong: game.songs[nextRound],
+        turnState: 'GUESSING',
+        lastGuessResult: null,
     });
-
-    setRevealed(false);
+    
     setGuess('');
-    setMessage('');
-    setTurnState('GUESSING');
     setPlaybackState('PLAYING');
 
   }, [game, isHost, onEndGame]);
+
+  // Automatic progression handled by the host
+  useEffect(() => {
+    if (revealed && isHost) {
+      const timer = setTimeout(() => {
+        nextTurn();
+      }, 4000); // Wait 4 seconds to show results before next round
+      return () => clearTimeout(timer);
+    }
+  }, [revealed, isHost, nextTurn]);
 
   const handleGuess = async () => {
     if (!currentSong || !guess) return;
@@ -118,12 +128,10 @@ const GameScreen: React.FC<GameScreenProps> = ({ game, currentUser, accessToken,
     const newScore = (game.scores[currentPlayer.id] || 0) + points;
     const gameRef = doc(db, 'games', game.code);
     await updateDoc(gameRef, {
-        [`scores.${currentPlayer.id}`]: newScore
+        [`scores.${currentPlayer.id}`]: newScore,
+        turnState: 'REVEALED',
+        lastGuessResult: resultMessage,
     });
-
-    setMessage(resultMessage);
-    setRevealed(true);
-    setTurnState('REVEALED');
   };
 
   const onPlayerReady = useCallback(() => {
@@ -210,13 +218,8 @@ const GameScreen: React.FC<GameScreenProps> = ({ game, currentUser, accessToken,
 
               {turnState === 'REVEALED' && (
                   <div className="space-y-4">
-                      <p className="text-xl font-semibold text-yellow-400 h-7">{message}</p>
-                      {isHost && (
-                        <Button onClick={nextTurn}>
-                          Next Round
-                        </Button>
-                      )}
-                      {!isHost && <p className="text-gray-300 animate-pulse">Waiting for host to start the next round...</p>}
+                      <p className="text-xl font-semibold text-yellow-400 h-7">{game.lastGuessResult}</p>
+                      <p className="text-gray-300 animate-pulse">Next round starting soon...</p>
                   </div>
               )}
               {!isMyTurn && turnState === 'GUESSING' && <p className="text-gray-400 mt-4">Waiting for {currentPlayer.name} to guess...</p>}

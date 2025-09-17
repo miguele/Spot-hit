@@ -48,4 +48,6 @@ export interface Game {
   currentSong: Song | null;
   timeline: TimelineSong[];
   songs: Song[];
+  turnState: 'GUESSING' | 'REVEALED';
+  lastGuessResult: string | null;
 }
