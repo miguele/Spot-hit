@@ -47,4 +47,5 @@ export interface Game {
   gameState: 'WAITING' | 'IN_PROGRESS' | 'FINISHED';
   currentSong: Song | null;
   timeline: TimelineSong[];
+  songs: Song[];
 }

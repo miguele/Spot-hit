@@ -1,6 +1,6 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import type { Game, Player, Screen, GameMode, Playlist } from './types';
+import type { Game, Player, Screen, GameMode, Playlist, Song } from './types';
 import HomeScreen from './components/HomeScreen';
 import LobbyScreen from './components/LobbyScreen';
 import GameScreen from './components/GameScreen';
@@ -14,7 +14,7 @@ import { doc, setDoc, getDoc, updateDoc, arrayUnion, onSnapshot, Unsubscribe } f
 const App: React.FC = () => {
   const [screen, setScreen] = useState<Screen>('HOME');
   const [game, setGame] = useState<Game | null>(null);
-  const [currentUser, setCurrentUser] = useState<Player | null>(null);
+  const [player, setPlayer] = useState<Player | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -34,10 +34,12 @@ const App: React.FC = () => {
         const gameData = docSnap.data() as Game;
         setGame(gameData);
         // If game state changes, update the screen
-        if (gameData.gameState === 'IN_PROGRESS' && screen !== 'GAME') {
+        if (gameData.gameState === 'IN_PROGRESS') {
            setScreen('GAME');
-        } else if (gameData.gameState === 'FINISHED' && screen !== 'RESULTS') {
+        } else if (gameData.gameState === 'FINISHED') {
            setScreen('RESULTS');
+        } else if (gameData.gameState === 'WAITING' && player) {
+            setScreen('LOBBY');
         }
       } else {
         addNotification("The game session has ended or could not be found.", "error");
@@ -45,7 +47,7 @@ const App: React.FC = () => {
         setScreen('LOBBY');
       }
     });
-  }, [addNotification, screen]);
+  }, [addNotification, player]);
 
   useEffect(() => {
     // Cleanup subscription on component unmount
@@ -64,7 +66,7 @@ const App: React.FC = () => {
       localStorage.setItem('spotify_access_token', token);
       const userProfile = await spotifyService.getUserProfile(token);
       const userPlaylists = await spotifyService.getUserPlaylists(token);
-      setCurrentUser(userProfile);
+      setPlayer(userProfile);
       setPlaylists(userPlaylists);
       addNotification(`Welcome, ${userProfile.name}!`, 'success');
       setScreen('LOBBY');
@@ -97,7 +99,7 @@ const App: React.FC = () => {
     }
     localStorage.removeItem('spotify_access_token');
     setAccessToken(null);
-    setCurrentUser(null);
+    setPlayer(null);
     setPlaylists([]);
     setGame(null);
     setScreen('HOME');
@@ -110,21 +112,22 @@ const App: React.FC = () => {
   }, [handleLogout, addNotification]);
 
   const handleCreateGame = useCallback(async (gameMode: GameMode) => {
-    if (!currentUser) return;
+    if (!player) return;
     const gameCode = Math.random().toString(36).substring(2, 8).toUpperCase();
     
     const newGame: Game = {
       code: gameCode,
-      host: currentUser,
-      players: [currentUser],
+      host: player,
+      players: [player],
       playlist: null,
       currentRound: 0,
       totalRounds: 10,
       mode: gameMode,
-      scores: { [currentUser.id]: 0 },
+      scores: { [player.id]: 0 },
       gameState: 'WAITING',
       currentSong: null,
       timeline: [],
+      songs: [],
     };
     
     try {
@@ -134,10 +137,10 @@ const App: React.FC = () => {
       console.error("Error creating game:", error);
       addNotification("Could not create game. Please try again.", "error");
     }
-  }, [currentUser, subscribeToGameUpdates, addNotification]);
+  }, [player, subscribeToGameUpdates, addNotification]);
   
   const handleJoinGame = useCallback(async (gameCode: string) => {
-    if (!currentUser) return;
+    if (!player) return;
 
     const gameRef = doc(db, 'games', gameCode);
     try {
@@ -149,12 +152,12 @@ const App: React.FC = () => {
                 return;
             }
             // Check if user is already in the game
-            if (gameData.players.some((p: Player) => p.id === currentUser.id)) {
+            if (gameData.players.some((p: Player) => p.id === player.id)) {
                  addNotification("You are already in this game.", "info");
             } else {
                  await updateDoc(gameRef, {
-                    players: arrayUnion(currentUser),
-                    [`scores.${currentUser.id}`]: 0,
+                    players: arrayUnion(player),
+                    [`scores.${player.id}`]: 0,
                 });
                 addNotification(`Successfully joined game ${gameCode}!`, "success");
             }
@@ -166,7 +169,49 @@ const App: React.FC = () => {
         console.error("Error joining game:", error);
         addNotification("Could not join game. Please check the code and try again.", "error");
     }
-  }, [currentUser, addNotification, subscribeToGameUpdates]);
+  }, [player, addNotification, subscribeToGameUpdates]);
+
+  const handleJoinAsGuest = useCallback(async (gameCode: string, playerName: string) => {
+    if (!playerName.trim()) {
+        addNotification("Please enter your name.", "error");
+        return;
+    }
+    if (!gameCode.trim()) {
+        addNotification("Please enter a game code.", "error");
+        return;
+    }
+
+    const guestPlayer: Player = {
+        id: `guest_${Date.now()}`,
+        name: playerName,
+        avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(playerName)}`,
+        isPremium: false,
+    };
+
+    const gameRef = doc(db, 'games', gameCode);
+    try {
+        const gameSnap = await getDoc(gameRef);
+        if (gameSnap.exists()) {
+            const gameData = gameSnap.data();
+            if (gameData.gameState !== 'WAITING') {
+                addNotification("This game has already started.", "error");
+                return;
+            }
+            await updateDoc(gameRef, {
+                players: arrayUnion(guestPlayer),
+                [`scores.${guestPlayer.id}`]: 0,
+            });
+            addNotification(`Successfully joined game ${gameCode} as ${playerName}!`, "success");
+            setPlayer(guestPlayer);
+            subscribeToGameUpdates(gameCode);
+        } else {
+            addNotification("Invalid code. No game found with this code.", "error");
+        }
+    } catch (error) {
+        console.error("Error joining game as guest:", error);
+        addNotification("Could not join game. Please check the code and try again.", "error");
+    }
+  }, [addNotification, subscribeToGameUpdates]);
   
   const handleSelectPlaylist = useCallback(async (playlistId: string) => {
     if (!game) return;
@@ -178,17 +223,38 @@ const App: React.FC = () => {
   }, [playlists, game]);
 
   const handleStartGame = useCallback(async () => {
-    if (game && game.playlist) {
-      if (game.host.isPremium) {
+    if (!game || !game.playlist || !accessToken || !player) return;
+     if (game.host.id !== player.id) {
+        addNotification("Only the host can start the game.", "error");
+        return;
+    }
+    if (game.host.isPremium) {
+      try {
+        addNotification('Loading playlist...', 'info');
+        const allSongs = await spotifyService.getPlaylistTracks(game.playlist.id, accessToken);
+        if (allSongs.length < 1) {
+            addNotification('This playlist is empty or contains no valid songs. Please select another.', 'error');
+            return;
+        }
+        const shuffled = [...allSongs].sort(() => 0.5 - Math.random());
+        const gameSongs = shuffled.slice(0, game.totalRounds);
+        
         const gameRef = doc(db, 'games', game.code);
-        await updateDoc(gameRef, { gameState: 'IN_PROGRESS' });
-      } else {
-        addNotification('The game host needs a Spotify Premium account to play.', 'error');
+        await updateDoc(gameRef, { 
+            gameState: 'IN_PROGRESS',
+            songs: gameSongs,
+            currentSong: gameSongs[0],
+            currentRound: 0,
+        });
+
+      } catch (error) {
+        console.error("Error starting game:", error);
+        addNotification("Could not load playlist and start the game.", "error");
       }
     } else {
-      addNotification('Please select a playlist first!', 'info');
+      addNotification('The game host needs a Spotify Premium account to play.', 'error');
     }
-  }, [game, addNotification]);
+  }, [game, accessToken, player, addNotification]);
   
   const handleEndGame = useCallback(async (finalScores: Record<string, number>) => {
     if (!game) return;
@@ -219,12 +285,12 @@ const App: React.FC = () => {
 
     switch (screen) {
       case 'HOME':
-        return <HomeScreen onTokenReceived={handleTokenReceived} />;
+        return <HomeScreen onTokenReceived={handleTokenReceived} onJoinAsGuest={handleJoinAsGuest} />;
       case 'LOBBY':
-        return (
+        return player && (
           <LobbyScreen
             game={game}
-            currentUser={currentUser!}
+            currentUser={player}
             playlists={playlists}
             onCreateGame={handleCreateGame}
             onJoinGame={handleJoinGame}
@@ -234,11 +300,11 @@ const App: React.FC = () => {
           />
         );
       case 'GAME':
-        return game && currentUser && accessToken && <GameScreen game={game} currentUser={currentUser} onEndGame={handleEndGame} accessToken={accessToken} onAuthError={handleAuthError} />;
+        return game && player && <GameScreen game={game} currentUser={player} onEndGame={handleEndGame} accessToken={accessToken} onAuthError={handleAuthError} />;
       case 'RESULTS':
         return game && <ResultsScreen game={game} onPlayAgain={handlePlayAgain} />;
       default:
-        return <HomeScreen onTokenReceived={handleTokenReceived} />;
+        return <HomeScreen onTokenReceived={handleTokenReceived} onJoinAsGuest={handleJoinAsGuest} />;
     }
   };
 
