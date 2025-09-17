@@ -1,14 +1,17 @@
 
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+
+import React, { useState, useCallback, useEffect, useRef, lazy, Suspense } from 'react';
 import type { Game, Player, Screen, GameMode, Playlist, Song } from './types';
-import HomeScreen from './components/HomeScreen';
-import LobbyScreen from './components/LobbyScreen';
-import GameScreen from './components/GameScreen';
-import ResultsScreen from './components/ResultsScreen';
 import * as spotifyService from './services/spotifyService';
 import { useNotification } from './contexts/NotificationContext';
 import { db } from './firebase/config';
 import { doc, setDoc, getDoc, updateDoc, arrayUnion, onSnapshot, Unsubscribe } from 'firebase/firestore';
+
+// Lazy load screen components for better performance and smaller initial bundle size
+const HomeScreen = lazy(() => import('./components/HomeScreen'));
+const LobbyScreen = lazy(() => import('./components/LobbyScreen'));
+const GameScreen = lazy(() => import('./components/GameScreen'));
+const ResultsScreen = lazy(() => import('./components/ResultsScreen'));
 
 
 const App: React.FC = () => {
@@ -275,14 +278,6 @@ const App: React.FC = () => {
   }, []);
 
   const renderScreen = () => {
-    if (isLoading) {
-      return (
-        <div className="flex justify-center items-center min-h-screen">
-          <p className="text-2xl animate-pulse">Loading Spot-Hit...</p>
-        </div>
-      );
-    }
-
     switch (screen) {
       case 'HOME':
         return <HomeScreen onTokenReceived={handleTokenReceived} onJoinAsGuest={handleJoinAsGuest} />;
@@ -308,10 +303,22 @@ const App: React.FC = () => {
     }
   };
 
+  const LoadingIndicator = ({ message }: { message: string }) => (
+    <div className="flex justify-center items-center min-h-screen">
+      <p className="text-2xl animate-pulse">{message}</p>
+    </div>
+  );
+
+  if (isLoading) {
+    return <LoadingIndicator message="Loading Spot-Hit..." />;
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-black to-gray-900 text-white p-4 sm:p-8">
       <div className="container mx-auto">
-        {renderScreen()}
+        <Suspense fallback={<LoadingIndicator message="Loading..." />}>
+          {renderScreen()}
+        </Suspense>
       </div>
     </div>
   );
