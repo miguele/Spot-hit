@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import type { Game, Player, Playlist } from '../types';
 import { GameMode } from '../types';
@@ -10,7 +11,7 @@ interface LobbyScreenProps {
   currentUser: Player;
   playlists: Playlist[];
   onCreateGame: (gameMode: GameMode) => void;
-  onJoinGame: (code: string) => void;
+  onJoinGame: (gameCode: string) => void;
   onSelectPlaylist: (playlistId: string) => void;
   onStartGame: () => void;
   onLogout: () => void;
@@ -18,7 +19,6 @@ interface LobbyScreenProps {
 
 const LobbyScreen: React.FC<LobbyScreenProps> = ({ game, currentUser, playlists, onCreateGame, onJoinGame, onSelectPlaylist, onStartGame, onLogout }) => {
   const [joinCode, setJoinCode] = useState('');
-
   const isHost = game?.host.id === currentUser.id;
   
   const UserProfileHeader = () => (
@@ -103,32 +103,38 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ game, currentUser, playlists,
   
   return (
     <>
-        <UserProfileHeader />
-        <div className="flex flex-col items-center justify-center min-h-[80vh] pt-20">
-            <h1 className="text-5xl font-black mb-10 text-center">Join or Create a Game</h1>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl">
-                <Card>
-                    <h2 className="text-3xl font-bold mb-6 text-center">Create Game</h2>
-                    <div className="p-6 border-2 rounded-xl border-[#1DB954] bg-[#1DB954]/10 mb-6">
-                       <h3 className="text-xl font-bold text-white">Guess the Year</h3>
-                       <p className="text-gray-400 mt-1">The classic mode. Guess the release year of the song.</p>
-                    </div>
-                    <Button onClick={() => onCreateGame(GameMode.GuessTheYear)} className="w-full">Create New Game</Button>
-                </Card>
-                <Card>
-                    <h2 className="text-3xl font-bold mb-6 text-center">Join Game</h2>
-                    <div className="space-y-4">
-                        <Input 
-                            type="text" 
-                            placeholder="Enter Game Code" 
-                            value={joinCode}
-                            onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                        />
-                        <Button onClick={() => onJoinGame(joinCode)} disabled={!joinCode} variant="secondary" className="w-full">Join with Code</Button>
-                    </div>
-                </Card>
+      <UserProfileHeader />
+      <div className="flex flex-col items-center justify-center min-h-[80vh] pt-20">
+        <h1 className="text-5xl font-black mb-10 text-center">Ready to Play?</h1>
+        <div className="w-full max-w-md grid grid-cols-1 md:grid-cols-1 gap-8">
+          <Card>
+            <h2 className="text-3xl font-bold mb-4 text-center">Create Game</h2>
+             <div className="p-4 border-2 rounded-xl border-[#1DB954] bg-[#1DB954]/10 mb-6">
+                <h3 className="text-lg font-bold text-white">Guess the Year</h3>
+                <p className="text-gray-400 mt-1 text-sm">The classic mode. Guess the release year of the song.</p>
             </div>
+            <Button onClick={() => onCreateGame(GameMode.GuessTheYear)} className="w-full">
+              Create New Game
+            </Button>
+          </Card>
+           <div className="text-center text-gray-400 text-2xl font-bold my-4">OR</div>
+          <Card>
+            <h2 className="text-3xl font-bold mb-4 text-center">Join Game</h2>
+            <form onSubmit={(e) => { e.preventDefault(); onJoinGame(joinCode.toUpperCase()); }}>
+                <Input 
+                    placeholder="ENTER GAME CODE" 
+                    value={joinCode}
+                    onChange={(e) => setJoinCode(e.target.value)}
+                    className="mb-4 tracking-widest"
+                    maxLength={6}
+                />
+                <Button type="submit" variant="secondary" className="w-full" disabled={!joinCode}>
+                    Join with Code
+                </Button>
+            </form>
+          </Card>
         </div>
+      </div>
     </>
   );
 };
