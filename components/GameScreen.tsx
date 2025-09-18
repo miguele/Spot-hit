@@ -1,6 +1,3 @@
-
-
-
 import React, { useState, useEffect, useCallback } from 'react';
 import type { Game, Player, Song, TimelineSong } from '../types';
 import { useNotification } from '../contexts/NotificationContext';
@@ -168,7 +165,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ game, currentUser, accessToken,
     const gameRef = doc(db, 'games', game.code);
     await updateDoc(gameRef, {
       turnState: 'REVEALED',
-      lastGuessResult: `Time's up! The year was ${currentSong.year}.`,
+      lastGuessResult: `¡Se acabó el tiempo! El año era ${currentSong.year}.`,
       turnStartTime: null,
     });
   }, [isHost, game.code, game.turnState, currentSong, addNotification]);
@@ -197,23 +194,44 @@ const GameScreen: React.FC<GameScreenProps> = ({ game, currentUser, accessToken,
         setPlaybackState('PAUSED');
     }
 
+    const MAX_ACCURACY_POINTS = 10;
+    const MAX_TIME_BONUS = 10;
+    const MAX_YEAR_DIFFERENCE_FOR_POINTS = 10;
+
+    const guessedYear = parseInt(guess, 10);
+    
     let points = 0;
     let resultMessage = '';
-    
-    const guessedYear = parseInt(guess, 10);
-    const diff = Math.abs(guessedYear - currentSong.year);
 
-    if (diff === 0) {
-        points = 3;
-        resultMessage = `Perfect! +3 points`;
-    } else if (diff <= 2) {
-        points = 2;
-        resultMessage = `So close! +2 points`;
-    } else if (diff <= 5) {
-        points = 1;
-        resultMessage = `Good guess! +1 point`;
+    if (isNaN(guessedYear) || !game.turnStartTime) {
+        resultMessage = `Respuesta inválida. El año era ${currentSong.year}.`;
     } else {
-        resultMessage = `Not quite! The year was ${currentSong.year}.`;
+        const timeTaken = (Date.now() - game.turnStartTime) / 1000;
+        const diff = Math.abs(guessedYear - currentSong.year);
+
+        let accuracyPoints = 0;
+        if (diff <= MAX_YEAR_DIFFERENCE_FOR_POINTS) {
+            accuracyPoints = MAX_ACCURACY_POINTS - diff;
+        }
+
+        let timeBonus = 0;
+        // Only award time bonus if the guess was somewhat accurate
+        if (accuracyPoints > 0 && timeTaken < TURN_DURATION) {
+            const timeRemaining = TURN_DURATION - timeTaken;
+            timeBonus = Math.round((timeRemaining / TURN_DURATION) * MAX_TIME_BONUS);
+        }
+
+        points = accuracyPoints + timeBonus;
+
+        if (points > 0) {
+            if (diff === 0) {
+                 resultMessage = `¡Perfecto! +${points} puntos (Año: ${currentSong.year})`;
+            } else {
+                 resultMessage = `¡Casi! +${points} puntos (Año: ${currentSong.year})`;
+            }
+        } else {
+            resultMessage = `No del todo. El año correcto era ${currentSong.year}.`;
+        }
     }
 
     const newScore = (game.scores[currentPlayer.id] || 0) + points;
@@ -272,7 +290,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ game, currentUser, accessToken,
               {game.players.map(p => (
                 <li key={p.id} className={`flex justify-between items-center p-3 rounded-lg transition-all duration-300 ${p.id === currentPlayer.id ? 'bg-[#1DB954] text-black' : 'bg-gray-700'}`}>
                   <div className="flex items-center gap-3">
-                    <img src={p.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${p.name}`} alt={p.name} className="w-10 h-10 rounded-full" />
+                    <img src={p.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${p.name}&backgroundColor=d1d5db`} alt={p.name} className="w-10 h-10 rounded-full" />
                     <span className="font-semibold">{p.name}</span>
                   </div>
                   <span className="text-2xl font-bold">{game.scores[p.id] || 0}</span>

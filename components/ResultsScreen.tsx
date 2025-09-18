@@ -1,4 +1,3 @@
-
 import React from 'react';
 import type { Game } from '../types';
 import Button from './Button';
@@ -34,7 +33,7 @@ const ResultsScreen: React.FC<ResultsScreenProps> = ({ game, onPlayAgain }) => {
               }`}
             >
               <span className="text-4xl font-bold w-16">{getTrophy(index)}</span>
-              <img src={player.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${player.name}`} alt={player.name} className="w-16 h-16 rounded-full border-4 border-gray-600 mx-4" />
+              <img src={player.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${player.name}&backgroundColor=d1d5db`} alt={player.name} className="w-16 h-16 rounded-full border-4 border-gray-600 mx-4" />
               <span className="text-xl font-semibold flex-grow text-left">{player.name}</span>
               <span className="text-3xl font-black">{game.scores[player.id] || 0} pts</span>
             </li>

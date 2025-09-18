@@ -17,22 +17,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onTokenReceived, onJoinAsGuest 
   const [joinCode, setJoinCode] = useState('');
   const [playerName, setPlayerName] = useState('');
   const [avatarSeed, setAvatarSeed] = useState('');
-  const [hasRandomized, setHasRandomized] = useState(false);
 
+  // On component mount, assign a random seed for the avatar.
   useEffect(() => {
-    if (!hasRandomized) {
-      setAvatarSeed(playerName);
-    }
-  }, [playerName, hasRandomized]);
+    setAvatarSeed(Math.random().toString(36).substring(2, 8));
+  }, []);
   
   const randomizeAvatar = () => {
-    setHasRandomized(true);
     setAvatarSeed(Math.random().toString(36).substring(2, 8));
-  };
-
-  const handlePlayerNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPlayerName(e.target.value);
-    setHasRandomized(false);
   };
 
   const redirectUri = CANONICAL_URL;
@@ -102,11 +94,12 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onTokenReceived, onJoinAsGuest 
 
   const handleGuestJoinSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const finalAvatarUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(avatarSeed || playerName || 'default')}`;
+    // Use the 'bottts' style for robot avatars and add a light background for visibility.
+    const finalAvatarUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(avatarSeed)}&backgroundColor=d1d5db`;
     onJoinAsGuest(joinCode.toUpperCase(), playerName, finalAvatarUrl);
   };
   
-  const avatarUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(avatarSeed || playerName || 'default')}`;
+  const avatarUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(avatarSeed)}&backgroundColor=d1d5db`;
 
 
   return (
@@ -129,11 +122,12 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onTokenReceived, onJoinAsGuest 
             <Card>
                 <h2 className="text-3xl font-bold mb-4">Join a Game</h2>
                 <div className="relative w-24 h-24 mx-auto mb-4">
-                  <img 
-                    src={avatarUrl} 
-                    alt="Your Avatar" 
-                    className="w-full h-full rounded-full bg-gray-900 border-2 border-gray-600 object-cover" 
-                    key={avatarSeed || playerName}
+                  <div
+                    key={avatarSeed}
+                    className="w-full h-full rounded-full bg-gray-900 border-2 border-gray-600 bg-cover bg-center"
+                    style={{ backgroundImage: `url(${avatarUrl})` }}
+                    role="img"
+                    aria-label="Your Avatar"
                   />
                    <button 
                     type="button" 
@@ -143,7 +137,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onTokenReceived, onJoinAsGuest 
                     aria-label="Randomize Avatar"
                   >
                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+                        <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 110 2H4a1 1 0 01-1-1V4a1 1 0 011-1zm10.707 9.293a1 1 0 010 1.414 7.002 7.002 0 01-11.601-2.566 1 1 0 111.885-.666A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a1 1 0 01-.293-.707z" clipRule="evenodd" />
                      </svg>
                   </button>
                 </div>
@@ -151,7 +145,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onTokenReceived, onJoinAsGuest 
                     <Input 
                         placeholder="Your Name" 
                         value={playerName}
-                        onChange={handlePlayerNameChange}
+                        onChange={(e) => setPlayerName(e.target.value)}
                         required
                     />
                     <Input 

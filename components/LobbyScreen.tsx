@@ -26,7 +26,7 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ game, currentUser, playlists,
   const UserProfileHeader = () => (
      <div className="absolute top-4 right-4 md:top-6 md:right-8">
         <div className="flex items-center gap-3 bg-black/30 backdrop-blur-sm p-2 rounded-full">
-            <img src={currentUser.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${currentUser.name}`} alt={currentUser.name} className="w-10 h-10 rounded-full"/>
+            <img src={currentUser.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${currentUser.name}&backgroundColor=d1d5db`} alt={currentUser.name} className="w-10 h-10 rounded-full"/>
             <span className="font-semibold hidden sm:inline">{currentUser.name}</span>
              {game && (
                  <button onClick={onLeaveGame} className="bg-amber-600 hover:bg-amber-700 text-white font-bold p-2 rounded-full transition-colors" title="Leave Game">
@@ -59,7 +59,7 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ game, currentUser, playlists,
                   <ul className="space-y-3">
                     {game.players.map(player => (
                       <li key={player.id} className="flex items-center gap-4 bg-gray-700/50 p-3 rounded-lg">
-                        <img src={player.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${player.name}`} alt={player.name} className="w-12 h-12 rounded-full border-2 border-gray-500" />
+                        <img src={player.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${player.name}&backgroundColor=d1d5db`} alt={player.name} className="w-12 h-12 rounded-full border-2 border-gray-500" />
                         <span className="font-medium text-lg">{player.name} {player.id === game.host.id && '(Host)'}</span>
                       </li>
                     ))}
@@ -96,7 +96,7 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ game, currentUser, playlists,
                                       : 'bg-gray-700/50 hover:bg-gray-700'
                                   }`}
                               >
-                                  <img src={p.coverUrl || `https://api.dicebear.com/7.x/shapes/svg?seed=${p.name}`} alt={p.name} className="w-12 h-12 rounded-md object-cover bg-gray-900" />
+                                  <img src={p.coverUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${p.name}`} alt={p.name} className="w-12 h-12 rounded-md object-cover bg-gray-900" />
                                   <div>
                                   <p className="font-bold">{p.name}</p>
                                   <p className="text-sm opacity-80">{p.trackCount} songs</p>
@@ -114,7 +114,7 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ game, currentUser, playlists,
                   ) : ( // Not the host
                     game.playlist ? (
                         <div className="flex items-center gap-4 p-3 rounded-lg bg-gray-700/50">
-                            <img src={game.playlist.coverUrl || `https://api.dicebear.com/7.x/shapes/svg?seed=${game.playlist.name}`} alt={game.playlist.name} className="w-12 h-12 rounded-md object-cover bg-gray-900" />
+                            <img src={game.playlist.coverUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${game.playlist.name}`} alt={game.playlist.name} className="w-12 h-12 rounded-md object-cover bg-gray-900" />
                             <div>
                             <p className="font-bold">{game.playlist.name}</p>
                             <p className="text-sm opacity-80">{game.playlist.trackCount} songs</p>
