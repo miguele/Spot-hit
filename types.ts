@@ -50,4 +50,5 @@ export interface Game {
   songs: Song[];
   turnState: 'GUESSING' | 'REVEALED';
   lastGuessResult: string | null;
+  turnStartTime: number | null;
 }

@@ -1,3 +1,5 @@
+
+
 import React, { useState, useEffect, useCallback } from 'react';
 import type { Game, Player, Song, TimelineSong } from '../types';
 import { useNotification } from '../contexts/NotificationContext';
@@ -14,7 +16,56 @@ interface GameScreenProps {
   accessToken: string | null; // Can be null for guests
   onEndGame: (finalScores: Record<string, number>) => void;
   onAuthError: () => void;
+  onLeaveGame: () => void;
 }
+
+const TURN_DURATION = 30; // 30 seconds
+
+const TurnTimer: React.FC<{ startTime: number; }> = ({ startTime }) => {
+  const [timeLeft, setTimeLeft] = useState(TURN_DURATION);
+
+  useEffect(() => {
+    // Update more frequently for smoother visuals
+    const interval = setInterval(() => {
+      const elapsed = (Date.now() - startTime) / 1000;
+      const remaining = Math.max(0, TURN_DURATION - elapsed);
+      setTimeLeft(remaining);
+    }, 250);
+
+    return () => clearInterval(interval);
+  }, [startTime]);
+
+  const progress = (timeLeft / TURN_DURATION) * 100;
+  
+  // Define colors and animations based on time left
+  const isUrgent = timeLeft <= 5;
+  const ringColor = timeLeft > 10 ? 'text-green-400' : timeLeft > 5 ? 'text-yellow-400' : 'text-red-500';
+  const pulseClass = isUrgent ? 'animate-pulse-red' : '';
+
+  return (
+    <div className={`relative w-24 h-24 ${pulseClass}`}>
+      <svg className="w-full h-full" viewBox="0 0 100 100">
+        <circle className="text-gray-700" strokeWidth="8" stroke="currentColor" fill="transparent" r="45" cx="50" cy="50" />
+        <circle
+          className={`transform -rotate-90 origin-center ${ringColor} transition-all duration-300 ease-linear`}
+          strokeWidth="8"
+          strokeDasharray={2 * Math.PI * 45}
+          strokeDashoffset={(2 * Math.PI * 45) * (1 - progress / 100)}
+          stroke="currentColor"
+          fill="transparent"
+          r="45"
+          cx="50"
+          cy="50"
+          strokeLinecap="round"
+        />
+      </svg>
+      <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center">
+        <span className={`text-3xl font-bold ${ringColor} transition-colors duration-300`}>{Math.ceil(timeLeft)}</span>
+      </div>
+    </div>
+  );
+};
+
 
 const SongCard: React.FC<{ song: Song, revealed: boolean }> = ({ song, revealed }) => {
   return (
@@ -39,10 +90,11 @@ const SongCard: React.FC<{ song: Song, revealed: boolean }> = ({ song, revealed 
 };
 
 
-const GameScreen: React.FC<GameScreenProps> = ({ game, currentUser, accessToken, onEndGame, onAuthError }) => {
+const GameScreen: React.FC<GameScreenProps> = ({ game, currentUser, accessToken, onEndGame, onAuthError, onLeaveGame }) => {
   const [guess, setGuess] = useState('');
   const [playbackState, setPlaybackState] = useState<'IDLE' | 'PLAYING' | 'PAUSED'>('IDLE');
   const [isPlayerReady, setIsPlayerReady] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const { addNotification } = useNotification();
 
@@ -82,6 +134,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ game, currentUser, accessToken,
         currentSong: game.songs[nextRound],
         turnState: 'GUESSING',
         lastGuessResult: null,
+        turnStartTime: Date.now(),
     });
     
     setGuess('');
@@ -99,8 +152,45 @@ const GameScreen: React.FC<GameScreenProps> = ({ game, currentUser, accessToken,
     }
   }, [revealed, isHost, nextTurn]);
 
+    useEffect(() => {
+    // When the result is revealed or a new turn starts, the submission is over.
+    if (game.turnState !== 'GUESSING') {
+      setIsSubmitting(false);
+    }
+  }, [game.turnState]);
+
+
+  const handleTimeUp = useCallback(async () => {
+    if (!currentSong || !isHost || game.turnState !== 'GUESSING') return;
+
+    addNotification("Time's up!", "info");
+    const gameRef = doc(db, 'games', game.code);
+    await updateDoc(gameRef, {
+      turnState: 'REVEALED',
+      lastGuessResult: `Time's up! The year was ${currentSong.year}.`,
+      turnStartTime: null,
+    });
+  }, [isHost, game.code, game.turnState, currentSong, addNotification]);
+
+  // Host is responsible for triggering the timeout
+  useEffect(() => {
+    if (isHost && game.turnState === 'GUESSING' && game.turnStartTime) {
+      const elapsed = (Date.now() - game.turnStartTime) / 1000;
+      const remainingTime = TURN_DURATION - elapsed;
+      if (remainingTime <= 0) {
+        handleTimeUp();
+      } else {
+        const timerId = setTimeout(handleTimeUp, remainingTime * 1000);
+        return () => clearTimeout(timerId);
+      }
+    }
+  }, [isHost, game.turnState, game.turnStartTime, handleTimeUp]);
+
+
   const handleGuess = async () => {
-    if (!currentSong || !guess) return;
+    if (!currentSong || !guess || isSubmitting) return;
+
+    setIsSubmitting(true);
     
     if (isHost) {
         setPlaybackState('PAUSED');
@@ -127,11 +217,18 @@ const GameScreen: React.FC<GameScreenProps> = ({ game, currentUser, accessToken,
 
     const newScore = (game.scores[currentPlayer.id] || 0) + points;
     const gameRef = doc(db, 'games', game.code);
-    await updateDoc(gameRef, {
-        [`scores.${currentPlayer.id}`]: newScore,
-        turnState: 'REVEALED',
-        lastGuessResult: resultMessage,
-    });
+    try {
+        await updateDoc(gameRef, {
+            [`scores.${currentPlayer.id}`]: newScore,
+            turnState: 'REVEALED',
+            lastGuessResult: resultMessage,
+            turnStartTime: null,
+        });
+    } catch (error) {
+        console.error("Error submitting guess:", error);
+        addNotification("Could not submit your guess. Please try again.", "error");
+        setIsSubmitting(false);
+    }
   };
 
   const onPlayerReady = useCallback(() => {
@@ -181,15 +278,22 @@ const GameScreen: React.FC<GameScreenProps> = ({ game, currentUser, accessToken,
                 </li>
               ))}
             </ul>
+            <Button onClick={onLeaveGame} variant="secondary" className="w-full mt-6">Leave Game</Button>
           </Card>
         </div>
 
         <div className="lg:col-span-3 order-1 lg:order-2">
-          <Card className="text-center">
+          <Card className="text-center" isProcessing={isSubmitting}>
             <p className="text-gray-400">Round {game.currentRound + 1} / {Math.min(game.totalRounds, game.songs.length)}</p>
-            <h2 className="text-3xl font-bold mt-1 mb-6">
+            <h2 className="text-3xl font-bold mt-1 mb-2">
               It's <span className="text-[#1DB954]">{isMyTurn ? "Your" : `${currentPlayer.name}'s`}</span> Turn!
             </h2>
+
+            {game.turnState === 'GUESSING' && game.turnStartTime && (
+              <div className="flex justify-center mb-4 animate-fade-in-up">
+                <TurnTimer startTime={game.turnStartTime} />
+              </div>
+            )}
 
             <SongCard song={currentSong} revealed={revealed} />
             
@@ -207,8 +311,8 @@ const GameScreen: React.FC<GameScreenProps> = ({ game, currentUser, accessToken,
 
                       { (isHost ? playbackState !== 'IDLE' : true) && (
                           <>
-                              <Input type="number" placeholder="YYYY" value={guess} onChange={(e) => setGuess(e.target.value)} disabled={!isMyTurn || revealed} />
-                              <Button onClick={handleGuess} disabled={!isMyTurn || !guess || revealed}>
+                              <Input type="number" placeholder="YYYY" value={guess} onChange={(e) => setGuess(e.target.value)} disabled={!isMyTurn || revealed || isSubmitting} />
+                              <Button onClick={handleGuess} disabled={!isMyTurn || !guess || revealed || isSubmitting}>
                                   Submit Guess
                               </Button>
                           </>

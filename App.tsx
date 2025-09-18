@@ -1,11 +1,13 @@
 
 
+
+
 import React, { useState, useCallback, useEffect, useRef, lazy, Suspense } from 'react';
 import type { Game, Player, Screen, GameMode, Playlist, Song } from './types';
 import * as spotifyService from './services/spotifyService';
 import { useNotification } from './contexts/NotificationContext';
 import { db } from './firebase/config';
-import { doc, setDoc, getDoc, updateDoc, arrayUnion, onSnapshot, Unsubscribe } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, arrayUnion, onSnapshot, Unsubscribe, deleteDoc, arrayRemove, deleteField } from 'firebase/firestore';
 
 // Lazy load screen components for better performance and smaller initial bundle size
 const HomeScreen = lazy(() => import('./components/HomeScreen'));
@@ -137,6 +139,7 @@ const App: React.FC = () => {
       songs: [],
       turnState: 'GUESSING',
       lastGuessResult: null,
+      turnStartTime: null,
     };
     
     try {
@@ -246,7 +249,14 @@ const App: React.FC = () => {
             addNotification('This playlist is empty or contains no valid songs. Please select another.', 'error');
             return;
         }
-        const shuffled = [...allSongs].sort(() => 0.5 - Math.random());
+        
+        // Fisher-Yates shuffle for better randomness
+        const shuffled = [...allSongs];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        
         const gameSongs = shuffled.slice(0, game.totalRounds);
         
         const gameRef = doc(db, 'games', game.code);
@@ -257,6 +267,7 @@ const App: React.FC = () => {
             currentRound: 0,
             turnState: 'GUESSING',
             lastGuessResult: null,
+            turnStartTime: Date.now(),
         });
 
       } catch (error) {
@@ -276,6 +287,48 @@ const App: React.FC = () => {
       scores: finalScores 
     });
   }, [game]);
+
+  const handleLeaveGame = useCallback(async () => {
+    if (!game || !player) return;
+
+    const gameRef = doc(db, 'games', game.code);
+
+    if (game.host.id === player.id) {
+        // Host is leaving, delete the game.
+        try {
+            await deleteDoc(gameRef);
+            addNotification("You left. As you were the host, the game has ended.", "info");
+        } catch (error) {
+            console.error("Error ending game:", error);
+            addNotification("Could not leave game. Please try again.", "error");
+            return;
+        }
+    } else {
+        // A regular player is leaving.
+        try {
+            const playerToRemove = game.players.find(p => p.id === player.id);
+            if (playerToRemove) {
+                 await updateDoc(gameRef, {
+                    players: arrayRemove(playerToRemove),
+                    [`scores.${player.id}`]: deleteField(),
+                });
+                addNotification("You have left the game.", "info");
+            }
+        } catch (error) {
+            console.error("Error leaving game:", error);
+            addNotification("Could not leave game. Please try again.", "error");
+            return;
+        }
+    }
+
+    // Unsubscribe and reset local state
+    if (gameSubscription.current) {
+        gameSubscription.current();
+        gameSubscription.current = null;
+    }
+    setGame(null);
+    setScreen('LOBBY');
+  }, [game, player, addNotification]);
   
   const handlePlayAgain = useCallback(() => {
     if (gameSubscription.current) {
@@ -301,10 +354,11 @@ const App: React.FC = () => {
             onSelectPlaylist={handleSelectPlaylist}
             onStartGame={handleStartGame}
             onLogout={handleLogout}
+            onLeaveGame={handleLeaveGame}
           />
         );
       case 'GAME':
-        return game && player && <GameScreen game={game} currentUser={player} onEndGame={handleEndGame} accessToken={accessToken} onAuthError={handleAuthError} />;
+        return game && player && <GameScreen game={game} currentUser={player} onEndGame={handleEndGame} accessToken={accessToken} onAuthError={handleAuthError} onLeaveGame={handleLeaveGame} />;
       case 'RESULTS':
         return game && <ResultsScreen game={game} onPlayAgain={handlePlayAgain} />;
       default:

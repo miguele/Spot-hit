@@ -39,6 +39,32 @@
       .animate-fade-in-right {
         animation: fade-in-right 0.5s ease-out forwards;
       }
+      @keyframes pulse-red {
+        0%, 100% {
+          transform: scale(1);
+          filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.4));
+        }
+        50% {
+          transform: scale(1.05);
+          filter: drop-shadow(0 0 12px rgba(239, 68, 68, 0.7));
+        }
+      }
+      .animate-pulse-red {
+        animation: pulse-red 1.5s ease-in-out infinite;
+      }
+      @keyframes pulse-processing {
+        0%, 100% {
+          border-color: #374151; /* gray-700 */
+          box-shadow: 0 0 0 0px rgba(29, 185, 84, 0);
+        }
+        50% {
+          border-color: #1DB954; /* green */
+          box-shadow: 0 0 8px 2px rgba(29, 185, 84, 0.5);
+        }
+      }
+      .animate-pulse-processing {
+        animation: pulse-processing 1.5s ease-in-out infinite;
+      }
     </style>
   <script type="importmap">
 {

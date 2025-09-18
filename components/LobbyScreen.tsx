@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import type { Game, Player, Playlist } from '../types';
 import { GameMode } from '../types';
@@ -15,9 +16,10 @@ interface LobbyScreenProps {
   onSelectPlaylist: (playlistId: string) => void;
   onStartGame: () => void;
   onLogout: () => void;
+  onLeaveGame: () => void;
 }
 
-const LobbyScreen: React.FC<LobbyScreenProps> = ({ game, currentUser, playlists, onCreateGame, onJoinGame, onSelectPlaylist, onStartGame, onLogout }) => {
+const LobbyScreen: React.FC<LobbyScreenProps> = ({ game, currentUser, playlists, onCreateGame, onJoinGame, onSelectPlaylist, onStartGame, onLogout, onLeaveGame }) => {
   const [joinCode, setJoinCode] = useState('');
   const isHost = game?.host.id === currentUser.id;
   
@@ -26,6 +28,13 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ game, currentUser, playlists,
         <div className="flex items-center gap-3 bg-black/30 backdrop-blur-sm p-2 rounded-full">
             <img src={currentUser.avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${currentUser.name}`} alt={currentUser.name} className="w-10 h-10 rounded-full"/>
             <span className="font-semibold hidden sm:inline">{currentUser.name}</span>
+             {game && (
+                 <button onClick={onLeaveGame} className="bg-amber-600 hover:bg-amber-700 text-white font-bold p-2 rounded-full transition-colors" title="Leave Game">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+                    </svg>
+                 </button>
+             )}
              <button onClick={onLogout} className="bg-red-600 hover:bg-red-700 text-white font-bold p-2 rounded-full transition-colors" title="Logout">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
