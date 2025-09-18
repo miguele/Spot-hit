@@ -38,6 +38,16 @@ export const getUserPlaylists = async (token: string): Promise<Playlist[]> => {
     }));
 };
 
+export const getPlaylistDetails = async (playlistId: string, token: string): Promise<Playlist> => {
+    const p = await fetchWebApi(`playlists/${playlistId}?fields=id,name,images,tracks.total`, 'GET', token);
+    return {
+        id: p.id,
+        name: p.name,
+        coverUrl: p.images?.[0]?.url,
+        trackCount: p.tracks.total,
+    };
+};
+
 export const getPlaylistTracks = async (playlistId: string, token:string): Promise<Song[]> => {
     const data = await fetchWebApi(`playlists/${playlistId}/tracks?fields=items(track(id,name,uri,artists(name),album(images,release_date)))`, 'GET', token);
     return data.items

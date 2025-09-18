@@ -96,15 +96,20 @@ const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({ token, songUri, playbackS
     };
   }, [token, onReady, addNotification, onAuthError]);
 
-  const playSong = async (uri: string) => {
+  const playSong = async (uri: string, positionMs = 0) => {
       if (!deviceId) {
         addNotification("Spotify player device not ready.", "error");
         return;
       }
       try {
+          const body: { uris: string[]; position_ms?: number } = { uris: [uri] };
+          if (positionMs > 0) {
+            body.position_ms = positionMs;
+          }
+
           const response = await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
               method: 'PUT',
-              body: JSON.stringify({ uris: [uri] }),
+              body: JSON.stringify(body),
               headers: {
                   'Content-Type': 'application/json',
                   'Authorization': `Bearer ${token}`
@@ -145,7 +150,7 @@ const SpotifyPlayer: React.FC<SpotifyPlayerProps> = ({ token, songUri, playbackS
     if (playbackState === 'PLAYING') {
       // Only start playback if it's a new song
       if (currentSongUri.current !== songUri) {
-          playSong(songUri);
+          playSong(songUri, 30000); // Play new songs from 30s mark
       } else {
           // If it's the same song, just resume. Handle potential errors.
           playerRef.current.resume().catch((e: Error) => {

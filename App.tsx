@@ -1,7 +1,3 @@
-
-
-
-
 import React, { useState, useCallback, useEffect, useRef, lazy, Suspense } from 'react';
 import type { Game, Player, Screen, GameMode, Playlist, Song } from './types';
 import * as spotifyService from './services/spotifyService';
@@ -15,6 +11,14 @@ const LobbyScreen = lazy(() => import('./components/LobbyScreen'));
 const GameScreen = lazy(() => import('./components/GameScreen'));
 const ResultsScreen = lazy(() => import('./components/ResultsScreen'));
 
+const curatedPlaylistIds: Record<string, string> = {
+    'Feel Good Classics': '37i9dQZF1DX4fpCWaHOned',
+    'Rock Classics': '37i9dQZF1DWXRqgorJj26U',
+    'Pop Classics': '37i9dQZF1DX6aTaZa0K6VA',
+    'Songs to Sing in the Car': '37i9dQZF1DWWMOmoBO0Mvs',
+    'Classic Road Trip': '37i9dQZF1DX9_IYLsqpCmw',
+    'Timeless Love Songs': '37i9dQZF1DWXbttAJcbphz',
+};
 
 const App: React.FC = () => {
   const [screen, setScreen] = useState<Screen>('HOME');
@@ -22,6 +26,7 @@ const App: React.FC = () => {
   const [player, setPlayer] = useState<Player | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
+  const [curatedPlaylists, setCuratedPlaylists] = useState<Playlist[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { addNotification } = useNotification();
   
@@ -74,9 +79,30 @@ const App: React.FC = () => {
       setAccessToken(token);
       localStorage.setItem('spotify_access_token', token);
       const userProfile = await spotifyService.getUserProfile(token);
-      const userPlaylists = await spotifyService.getUserPlaylists(token);
       setPlayer(userProfile);
-      setPlaylists(userPlaylists);
+
+      // Fetch user playlists and curated playlists in parallel for hosts
+      if (userProfile.isPremium) {
+          const [userPlaylistsResult, curatedPlaylistsResult] = await Promise.allSettled([
+              spotifyService.getUserPlaylists(token),
+              Promise.all(Object.values(curatedPlaylistIds).map(id => spotifyService.getPlaylistDetails(id, token)))
+          ]);
+
+          if (userPlaylistsResult.status === 'fulfilled') {
+              setPlaylists(userPlaylistsResult.value);
+          } else {
+              console.error("Failed to fetch user playlists:", userPlaylistsResult.reason);
+              addNotification("Could not load your personal playlists.", "error");
+          }
+
+          if (curatedPlaylistsResult.status === 'fulfilled') {
+              setCuratedPlaylists(curatedPlaylistsResult.value);
+          } else {
+              console.error("Failed to fetch curated playlists:", curatedPlaylistsResult.reason);
+              addNotification("Could not load Spot-Hit playlists.", "error");
+          }
+      }
+      
       addNotification(`Welcome, ${userProfile.name}!`, 'success');
       setScreen('LOBBY');
     } catch (err) {
@@ -110,6 +136,7 @@ const App: React.FC = () => {
     setAccessToken(null);
     setPlayer(null);
     setPlaylists([]);
+    setCuratedPlaylists([]);
     setGame(null);
     setScreen('HOME');
     addNotification("You have been logged out.", "info");
@@ -228,12 +255,13 @@ const App: React.FC = () => {
   
   const handleSelectPlaylist = useCallback(async (playlistId: string) => {
     if (!game) return;
-    const playlist = playlists.find(p => p.id === playlistId);
+    const allPlaylists = [...playlists, ...curatedPlaylists];
+    const playlist = allPlaylists.find(p => p.id === playlistId);
     if (playlist) {
       const gameRef = doc(db, 'games', game.code);
       await updateDoc(gameRef, { playlist: playlist });
     }
-  }, [playlists, game]);
+  }, [playlists, curatedPlaylists, game]);
 
   const handleStartGame = useCallback(async () => {
     if (!game || !game.playlist || !accessToken || !player) return;
@@ -349,6 +377,7 @@ const App: React.FC = () => {
             game={game}
             currentUser={player}
             playlists={playlists}
+            curatedPlaylists={curatedPlaylists}
             onCreateGame={handleCreateGame}
             onJoinGame={handleJoinGame}
             onSelectPlaylist={handleSelectPlaylist}

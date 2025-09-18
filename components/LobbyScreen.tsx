@@ -1,5 +1,3 @@
-
-
 import React, { useState } from 'react';
 import type { Game, Player, Playlist } from '../types';
 import { GameMode } from '../types';
@@ -11,6 +9,7 @@ interface LobbyScreenProps {
   game: Game | null;
   currentUser: Player;
   playlists: Playlist[];
+  curatedPlaylists: Playlist[];
   onCreateGame: (gameMode: GameMode) => void;
   onJoinGame: (gameCode: string) => void;
   onSelectPlaylist: (playlistId: string) => void;
@@ -19,9 +18,10 @@ interface LobbyScreenProps {
   onLeaveGame: () => void;
 }
 
-const LobbyScreen: React.FC<LobbyScreenProps> = ({ game, currentUser, playlists, onCreateGame, onJoinGame, onSelectPlaylist, onStartGame, onLogout, onLeaveGame }) => {
+const LobbyScreen: React.FC<LobbyScreenProps> = ({ game, currentUser, playlists, curatedPlaylists, onCreateGame, onJoinGame, onSelectPlaylist, onStartGame, onLogout, onLeaveGame }) => {
   const [joinCode, setJoinCode] = useState('');
   const isHost = game?.host.id === currentUser.id;
+  const [activeTab, setActiveTab] = useState<'my' | 'spothit'>(playlists.length > 0 ? 'my' : 'spothit');
   
   const UserProfileHeader = () => (
      <div className="absolute top-4 right-4 md:top-6 md:right-8">
@@ -68,29 +68,61 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ game, currentUser, playlists,
                 
                 <div>
                   <h3 className="text-xl font-semibold mb-4 border-b border-gray-600 pb-2">Select Playlist</h3>
-                  {playlists.length > 0 ? (
-                    <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
-                      {playlists.map(p => (
-                        <button
-                          key={p.id}
-                          onClick={() => isHost && onSelectPlaylist(p.id)}
-                          disabled={!isHost}
-                          className={`w-full text-left flex items-center gap-4 p-3 rounded-lg transition-colors duration-200 ${
-                            game.playlist?.id === p.id 
-                              ? 'bg-[#1DB954] text-black ring-2 ring-white' 
-                              : 'bg-gray-700/50 hover:bg-gray-700'
-                          } ${isHost ? 'cursor-pointer' : 'cursor-not-allowed'}`}
-                        >
-                          <img src={p.coverUrl || `https://api.dicebear.com/7.x/shapes/svg?seed=${p.name}`} alt={p.name} className="w-12 h-12 rounded-md object-cover bg-gray-900" />
-                          <div>
-                            <p className="font-bold">{p.name}</p>
-                            <p className="text-sm opacity-80">{p.trackCount} songs</p>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-gray-400">You don't have any playlists. Create one on Spotify to play!</p>
+                  {isHost ? (
+                    <>
+                      <div className="flex border-b border-gray-600 mb-4">
+                          <button 
+                              onClick={() => setActiveTab('my')}
+                              className={`py-2 px-4 font-semibold transition-colors ${activeTab === 'my' ? 'text-white border-b-2 border-[#1DB954]' : 'text-gray-400'}`}
+                          >
+                              My Playlists
+                          </button>
+                          <button 
+                              onClick={() => setActiveTab('spothit')}
+                              className={`py-2 px-4 font-semibold transition-colors ${activeTab === 'spothit' ? 'text-white border-b-2 border-[#1DB954]' : 'text-gray-400'}`}
+                          >
+                              Spot-Hit Picks
+                          </button>
+                      </div>
+                      
+                      <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
+                          {(activeTab === 'my' ? playlists : curatedPlaylists).map(p => (
+                              <button
+                                  key={p.id}
+                                  onClick={() => onSelectPlaylist(p.id)}
+                                  className={`w-full text-left flex items-center gap-4 p-3 rounded-lg transition-colors duration-200 ${
+                                  game.playlist?.id === p.id 
+                                      ? 'bg-[#1DB954] text-black ring-2 ring-white' 
+                                      : 'bg-gray-700/50 hover:bg-gray-700'
+                                  }`}
+                              >
+                                  <img src={p.coverUrl || `https://api.dicebear.com/7.x/shapes/svg?seed=${p.name}`} alt={p.name} className="w-12 h-12 rounded-md object-cover bg-gray-900" />
+                                  <div>
+                                  <p className="font-bold">{p.name}</p>
+                                  <p className="text-sm opacity-80">{p.trackCount} songs</p>
+                                  </div>
+                              </button>
+                          ))}
+                          {activeTab === 'my' && playlists.length === 0 && (
+                              <p className="text-gray-400">You don't have any playlists. Create one on Spotify or use Spot-Hit Picks.</p>
+                          )}
+                          {activeTab === 'spothit' && curatedPlaylists.length === 0 && (
+                              <p className="text-gray-400 animate-pulse">Loading Spot-Hit playlists...</p>
+                          )}
+                      </div>
+                    </>
+                  ) : ( // Not the host
+                    game.playlist ? (
+                        <div className="flex items-center gap-4 p-3 rounded-lg bg-gray-700/50">
+                            <img src={game.playlist.coverUrl || `https://api.dicebear.com/7.x/shapes/svg?seed=${game.playlist.name}`} alt={game.playlist.name} className="w-12 h-12 rounded-md object-cover bg-gray-900" />
+                            <div>
+                            <p className="font-bold">{game.playlist.name}</p>
+                            <p className="text-sm opacity-80">{game.playlist.trackCount} songs</p>
+                            </div>
+                        </div>
+                    ) : (
+                        <p className="text-gray-400">Waiting for host to select a playlist...</p>
+                    )
                   )}
                 </div>
               </div>
