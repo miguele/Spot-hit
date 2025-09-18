@@ -210,7 +210,7 @@ const App: React.FC = () => {
     }
   }, [player, addNotification, subscribeToGameUpdates]);
 
-  const handleJoinAsGuest = useCallback(async (gameCode: string, playerName: string) => {
+  const handleJoinAsGuest = useCallback(async (gameCode: string, playerName: string, avatarUrl: string) => {
     if (!playerName.trim()) {
         addNotification("Please enter your name.", "error");
         return;
@@ -223,7 +223,7 @@ const App: React.FC = () => {
     const guestPlayer: Player = {
         id: `guest_${Date.now()}`,
         name: playerName,
-        avatarUrl: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(playerName)}`,
+        avatarUrl: avatarUrl,
         isPremium: false,
     };
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Button from './Button';
 import SpotifyLogo from './SpotifyLogo';
 import Card from './Card';
@@ -9,13 +9,31 @@ import { CANONICAL_URL } from '../config';
 
 interface HomeScreenProps {
   onTokenReceived: (token: string) => void;
-  onJoinAsGuest: (gameCode: string, playerName: string) => void;
+  onJoinAsGuest: (gameCode: string, playerName: string, avatarUrl: string) => void;
 }
 
 const HomeScreen: React.FC<HomeScreenProps> = ({ onTokenReceived, onJoinAsGuest }) => {
   const { addNotification } = useNotification();
   const [joinCode, setJoinCode] = useState('');
   const [playerName, setPlayerName] = useState('');
+  const [avatarSeed, setAvatarSeed] = useState('');
+  const [hasRandomized, setHasRandomized] = useState(false);
+
+  useEffect(() => {
+    if (!hasRandomized) {
+      setAvatarSeed(playerName);
+    }
+  }, [playerName, hasRandomized]);
+  
+  const randomizeAvatar = () => {
+    setHasRandomized(true);
+    setAvatarSeed(Math.random().toString(36).substring(2, 8));
+  };
+
+  const handlePlayerNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPlayerName(e.target.value);
+    setHasRandomized(false);
+  };
 
   const redirectUri = CANONICAL_URL;
 
@@ -84,8 +102,12 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onTokenReceived, onJoinAsGuest 
 
   const handleGuestJoinSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onJoinAsGuest(joinCode.toUpperCase(), playerName);
+    const finalAvatarUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(avatarSeed || playerName || 'default')}`;
+    onJoinAsGuest(joinCode.toUpperCase(), playerName, finalAvatarUrl);
   };
+  
+  const avatarUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(avatarSeed || playerName || 'default')}`;
+
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen text-center animate-fade-in-up">
@@ -106,11 +128,30 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onTokenReceived, onJoinAsGuest 
             </Card>
             <Card>
                 <h2 className="text-3xl font-bold mb-4">Join a Game</h2>
+                <div className="relative w-24 h-24 mx-auto mb-4">
+                  <img 
+                    src={avatarUrl} 
+                    alt="Your Avatar" 
+                    className="w-full h-full rounded-full bg-gray-900 border-2 border-gray-600 object-cover" 
+                    key={avatarSeed || playerName}
+                  />
+                   <button 
+                    type="button" 
+                    onClick={randomizeAvatar} 
+                    className="absolute bottom-0 right-0 p-2 bg-gray-700 hover:bg-gray-600 rounded-full transition-colors transform hover:scale-110" 
+                    title="Randomize Avatar"
+                    aria-label="Randomize Avatar"
+                  >
+                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+                     </svg>
+                  </button>
+                </div>
                 <form onSubmit={handleGuestJoinSubmit} className="space-y-4">
                     <Input 
                         placeholder="Your Name" 
                         value={playerName}
-                        onChange={(e) => setPlayerName(e.target.value)}
+                        onChange={handlePlayerNameChange}
                         required
                     />
                     <Input 

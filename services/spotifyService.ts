@@ -29,7 +29,7 @@ export const getUserProfile = async (token: string): Promise<Player> => {
 };
 
 export const getUserPlaylists = async (token: string): Promise<Playlist[]> => {
-    const data = await fetchWebApi('me/playlists?limit=50', 'GET', token);
+    const data = await fetchWebApi('me/playlists?limit=20', 'GET', token);
     return data.items.map((p: any): Playlist => ({
         id: p.id,
         name: p.name,

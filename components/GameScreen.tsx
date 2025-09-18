@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useEffect, useCallback } from 'react';
 import type { Game, Player, Song, TimelineSong } from '../types';
 import { useNotification } from '../contexts/NotificationContext';
@@ -107,13 +108,13 @@ const GameScreen: React.FC<GameScreenProps> = ({ game, currentUser, accessToken,
   const isHost = game.host.id === currentUser.id;
   const currentSong = game.currentSong;
 
-  // Auto-play song for 20 seconds
+  // Auto-play song for the duration of the turn
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
     if (playbackState === 'PLAYING' && isHost) {
       timer = setTimeout(() => {
         setPlaybackState('PAUSED');
-      }, 20000); // Play for 20 seconds
+      }, TURN_DURATION * 1000); // Sync with turn duration
     }
     return () => clearTimeout(timer);
   }, [playbackState, isHost]);
