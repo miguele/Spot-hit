@@ -1,14 +1,23 @@
 
-import React from 'react';
 
-interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+import React from 'react';
+import { TextInput } from 'react-native';
+// FIX: Import styled from nativewind to handle className prop.
+import { styled } from 'nativewind';
+
+interface InputProps extends React.ComponentProps<typeof TextInput> {
   className?: string;
 }
 
+// FIX: Create a styled version of TextInput to accept the className prop.
+const StyledTextInput = styled(TextInput);
+
 const Input: React.FC<InputProps> = ({ className = '', ...props }) => {
   return (
-    <input
-      className={`bg-gray-700 border-2 border-gray-600 text-white placeholder-gray-400 text-center text-lg rounded-full w-full py-3 px-6 focus:outline-none focus:ring-4 focus:ring-[#1ED760]/50 focus:border-[#1ED760] transition-all duration-300 ${className}`}
+    // FIX: Use StyledTextInput to apply className.
+    <StyledTextInput
+      className={`bg-gray-700 border-2 border-gray-600 text-white text-center text-lg rounded-full w-full py-3 px-6 ${className}`}
+      placeholderTextColor="#9CA3AF"
       {...props}
     />
   );

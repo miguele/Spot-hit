@@ -1,61 +1,49 @@
-import React from 'react';
 
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+
+import React from 'react';
+import { TouchableOpacity, Text, View } from 'react-native';
+// FIX: Import styled from nativewind to handle className prop.
+import { styled } from 'nativewind';
+
+interface ButtonProps {
   children: React.ReactNode;
   variant?: 'primary' | 'secondary';
   className?: string;
-  href?: string;
+  onPress?: () => void;
+  disabled?: boolean;
 }
 
-const Button: React.FC<ButtonProps> = ({ children, variant = 'primary', className = '', href, disabled, ...props }) => {
-  const baseClasses = 'font-bold py-3 px-6 rounded-full transition-all duration-300 ease-in-out focus:outline-none focus:ring-4 disabled:opacity-50 disabled:cursor-not-allowed text-lg inline-flex items-center justify-center';
+// FIX: Create styled versions of components to accept the className prop.
+const StyledTouchableOpacity = styled(TouchableOpacity);
+const StyledText = styled(Text);
+
+const Button: React.FC<ButtonProps> = ({ children, variant = 'primary', className = '', onPress, disabled = false }) => {
+  const baseClasses = 'py-3 px-6 rounded-full items-center justify-center';
 
   const variantClasses = {
-    primary: 'bg-[#1DB954] text-black hover:bg-[#1ED760] focus:ring-[#1ED760]/50 transform hover:scale-105',
-    secondary: 'bg-gray-700 text-white hover:bg-gray-600 focus:ring-gray-500/50',
+    primary: 'bg-[#1DB954]',
+    secondary: 'bg-gray-700',
   };
 
-  const finalClassName = `${baseClasses} ${variantClasses[variant]} ${className}`;
-
-  if (href) {
-    if (disabled) {
-      // A disabled link should not be navigable. We render an `a` tag without an href
-      // and prevent default click behavior to ensure it's non-interactive.
-      return (
-        <a
-          className={`${finalClassName} opacity-50 cursor-not-allowed`}
-          onClick={(e) => e.preventDefault()}
-          aria-disabled={true}
-          role="button"
-        >
-          {children}
-        </a>
-      );
-    }
-    
-    // An enabled link is a standard anchor tag. Open in a new tab to avoid sandbox restrictions.
-    return (
-      <a
-        href={href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className={finalClassName}
-        role="button"
-      >
-        {children}
-      </a>
-    );
+  const textVariantClasses = {
+    primary: 'text-black',
+    secondary: 'text-white',
   }
 
-  // For buttons, the `disabled` attribute is supported and works with Tailwind's `disabled:` variants.
+  const finalClassName = `${baseClasses} ${variantClasses[variant]} ${disabled ? 'opacity-50' : ''} ${className}`;
+  const textClassName = `font-bold text-lg ${textVariantClasses[variant]}`;
+
   return (
-    <button
-      className={finalClassName}
+    // FIX: Use StyledTouchableOpacity to apply className.
+    <StyledTouchableOpacity
+      onPress={onPress}
       disabled={disabled}
-      {...props}
+      className={finalClassName}
+      activeOpacity={0.7}
     >
-      {children}
-    </button>
+      {/* FIX: Use StyledText to apply className. */}
+      <StyledText className={textClassName}>{children}</StyledText>
+    </StyledTouchableOpacity>
   );
 };
 
