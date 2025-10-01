@@ -2,8 +2,6 @@
 
 import React, { createContext, useState, useContext, ReactNode, useCallback } from 'react';
 import { View } from 'react-native';
-// FIX: Import styled from nativewind to handle className prop.
-import { styled } from 'nativewind';
 import type { NotificationType } from '../types';
 import Notification from '../components/Notification';
 
@@ -18,9 +16,6 @@ interface NotificationContextType {
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
-
-// FIX: Create a styled version of View to accept the className prop.
-const StyledView = styled(View);
 
 export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [notifications, setNotifications] = useState<NotificationMessage[]>([]);
@@ -37,8 +32,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   return (
     <NotificationContext.Provider value={{ addNotification }}>
       {children}
-      {/* FIX: Use StyledView to apply className. */}
-      <StyledView className="absolute top-12 right-0 left-0 z-50">
+      <View className="absolute top-12 right-0 left-0 z-50">
         {notifications.map(notification => (
           <Notification
             key={notification.id}
@@ -47,7 +41,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
             onDismiss={() => removeNotification(notification.id)}
           />
         ))}
-      </StyledView>
+      </View>
     </NotificationContext.Provider>
   );
 };
