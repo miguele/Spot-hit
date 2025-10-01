@@ -1,4 +1,5 @@
 
+
 import React, { useEffect, useRef } from 'react';
 
 interface MockSpotifyPlayerProps {
@@ -17,7 +18,8 @@ interface MockSpotifyPlayerProps {
  * as if music were playing.
  */
 const SpotifyPlayer: React.FC<MockSpotifyPlayerProps> = ({ songUri, playbackState, onReady }) => {
-  const playbackTimer = useRef<NodeJS.Timeout | null>(null);
+  // FIX: Replaced NodeJS.Timeout with ReturnType<typeof setTimeout> for environment compatibility.
+  const playbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // The player is "ready" as soon as it mounts in this mock version.
   useEffect(() => {

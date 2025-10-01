@@ -4,8 +4,6 @@ import React, { useEffect } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Svg, Path } from 'react-native-svg';
 import type { NotificationType } from '../types';
-// FIX: Import styled from nativewind to handle className prop.
-import { styled } from 'nativewind';
 
 interface NotificationProps {
   message: string;
@@ -13,12 +11,8 @@ interface NotificationProps {
   onDismiss: () => void;
 }
 
-// FIX: Create styled versions of components to accept the className prop.
-const StyledView = styled(View);
-const StyledText = styled(Text);
-const StyledTouchableOpacity = styled(TouchableOpacity);
-
-const icons: Record<NotificationType, JSX.Element> = {
+// FIX: Replaced JSX.Element with React.ReactNode to resolve namespace error.
+const icons: Record<NotificationType, React.ReactNode> = {
   success: (
     <Svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><Path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></Svg>
   ),
@@ -47,14 +41,14 @@ const Notification: React.FC<NotificationProps> = ({ message, type, onDismiss })
     }, [onDismiss]);
 
     return (
-        <StyledTouchableOpacity 
+        <TouchableOpacity 
             onPress={onDismiss} 
             className={`flex-row items-center p-4 rounded-lg shadow-lg m-2 ${backgroundColors[type]}`}
             activeOpacity={0.8}
         >
-            <StyledView className="flex-shrink-0">{icons[type]}</StyledView>
-            <StyledText className="ml-3 text-white font-semibold flex-1">{message}</StyledText>
-        </StyledTouchableOpacity>
+            <View className="flex-shrink-0">{icons[type]}</View>
+            <Text className="ml-3 text-white font-semibold flex-1">{message}</Text>
+        </TouchableOpacity>
     );
 };
 
