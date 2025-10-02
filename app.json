@@ -1,17 +1,18 @@
 {
   "expo": {
-    "sdkVersion": "52.0.0",
     "name": "Spot-Hit",
     "slug": "spot-hit-native",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "splash": {
-      "image": "./assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#000000"
     },
+	"plugins": [
+      "react-native-iap",
+      ["expo-build-properties", { "android": { "kotlinVersion": "2.1.20" } }]
+    ],
     "assetBundlePatterns": [
       "**/*"
     ],
@@ -19,17 +20,9 @@
       "supportsTablet": true
     },
     "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#000000"
-      },
-      "package": "com.spothit.game",
-      "config": {
-        "googleMobileAdsAppId": "ca-app-pub-4001919766690685~4271319168"
-      }
+      "package": "com.spothit.game"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
     }
   }
 }
