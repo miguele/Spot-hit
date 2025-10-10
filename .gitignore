@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+.expo
+miguel.lopez.cobalea-app
+android
