@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Image } from 'react-native';
 // Mock navigation prop for demonstration
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import SpotifyLogo from './SpotifyLogo';
 
 // Assuming you have a RootStackParamList
 type RootStackParamList = {
@@ -13,9 +14,6 @@ type RootStackParamList = {
 };
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
-
-// Mock SpotifyLogo component for React Native
-const SpotifyLogo = () => <View className="w-6 h-6 bg-green-500 rounded-full" />;
 
 const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [joinCode, setJoinCode] = useState('');
@@ -55,7 +53,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
             <Text className="text-2xl text-white font-bold text-center mb-2">Create a Game</Text>
             <Text className="text-gray-400 text-center mb-4">Login with Spotify to host.</Text>
             <TouchableOpacity onPress={handleLogin} className="bg-[#1DB954] py-3 px-6 rounded-full flex-row justify-center items-center">
-                <SpotifyLogo />
+                <SpotifyLogo className="w-6 h-6" />
                 <Text className="text-black font-bold text-lg ml-2">Login with Spotify</Text>
             </TouchableOpacity>
         </View>
