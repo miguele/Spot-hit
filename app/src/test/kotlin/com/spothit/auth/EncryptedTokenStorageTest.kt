@@ -7,6 +7,7 @@ import com.spothit.core.auth.AuthTokens
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -52,6 +53,8 @@ class EncryptedTokenStorageTest {
 
         val emissions = mutableListOf<AuthTokens?>()
         val job = launch { storage.tokensFlow.take(3).toList(emissions) }
+
+        runCurrent()
 
         storage.saveTokens(tokens)
         storage.clear()
