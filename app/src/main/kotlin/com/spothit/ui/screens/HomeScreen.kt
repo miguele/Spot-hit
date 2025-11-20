@@ -1,18 +1,28 @@
 package com.spothit.ui.screens
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -20,10 +30,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.spothit.GameViewModel
-import com.spothit.ui.components.InfoCard
 import com.spothit.ui.components.PrimaryButton
 
 @Composable
@@ -31,71 +44,168 @@ fun HomeScreen(viewModel: GameViewModel, onNavigateToLobby: () -> Unit) {
     var hostName by remember { mutableStateOf("") }
     var friendName by remember { mutableStateOf("") }
     var rounds by remember { mutableStateOf("3") }
+    var showCreateDialog by remember { mutableStateOf(false) }
+    var showJoinDialog by remember { mutableStateOf(false) }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(20.dp),
-        verticalArrangement = Arrangement.Top,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Icon(imageVector = Icons.Default.MusicNote, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-        Spacer(modifier = Modifier.height(12.dp))
-        Text(
-            text = "Spot-Hit",
-            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold)
-        )
-        Text(
-            text = "Crea o únete a una partida y adivina el año de los éxitos",
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.padding(top = 4.dp, bottom = 16.dp)
-        )
+    val gradientBackground = Brush.verticalGradient(
+        colors = listOf(Color(0xFF0B1024), Color(0xFF111B34), Color(0xFF0B1024)),
+        startY = 0f,
+        endY = Float.POSITIVE_INFINITY
+    )
 
-        InfoCard(
-            title = "¿Cómo funciona?",
-            subtitle = "El anfitrión crea una sala, los amigos se unen y cada ronda debéis adivinar el año de la canción."
-        )
+    Surface(color = Color.Transparent) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(gradientBackground)
+                .padding(horizontal = 24.dp, vertical = 32.dp)
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.SpaceBetween,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Card(
+                        modifier = Modifier.size(80.dp),
+                        shape = CircleShape,
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1DB954).copy(alpha = 0.15f))
+                    ) {
+                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                            Icon(
+                                imageVector = Icons.Default.MusicNote,
+                                contentDescription = null,
+                                tint = Color(0xFF1DB954),
+                                modifier = Modifier.size(38.dp)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Spot-Hit",
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            color = Color.White,
+                            fontWeight = FontWeight.ExtraBold,
+                            letterSpacing = 0.5.sp
+                        )
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Adivina el año exacto de los temazos que amas.",
+                        style = MaterialTheme.typography.bodyLarge.copy(color = Color(0xFFE4E7EE)),
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "Elige un modo, invita amigos y deja que la música hable.",
+                        style = MaterialTheme.typography.bodyMedium.copy(color = Color(0xFF9AA3B5)),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 8.dp)
+                    )
+                }
 
-        Spacer(modifier = Modifier.height(20.dp))
-        Text("Crear partida", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
-        OutlinedTextField(
-            value = hostName,
-            onValueChange = { hostName = it },
-            label = { Text("Tu nombre") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        OutlinedTextField(
-            value = rounds,
-            onValueChange = { rounds = it.filter { char -> char.isDigit() }.take(2) },
-            label = { Text("Rondas (máx 10)") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        PrimaryButton(
-            text = "Crear sala",
-            enabled = hostName.isNotBlank() && rounds.toIntOrNull() != null,
-            onClick = {
-                val totalRounds = rounds.toIntOrNull()?.coerceIn(1, 10) ?: 3
-                viewModel.createSession(hostName.trim(), totalRounds)
-                onNavigateToLobby()
+                Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    PrimaryButton(
+                        text = "Crear nueva partida",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        onClick = { showCreateDialog = true }
+                    )
+                    PrimaryButton(
+                        text = "Unirse a la partida",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        onClick = { showJoinDialog = true }
+                    )
+                }
+
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = "Partidas anteriores",
+                        style = MaterialTheme.typography.bodyMedium.copy(color = Color(0xFF9AA3B5)),
+                        modifier = Modifier.clickable { /* TODO: Navegar a historial */ }
+                    )
+                    Text(
+                        text = "Powered by Spotify",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            color = Color(0xFF6AE2A2),
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    )
+                }
+            }
+        }
+    }
+
+    if (showCreateDialog) {
+        AlertDialog(
+            onDismissRequest = { showCreateDialog = false },
+            title = { Text("Crear partida", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedTextField(
+                        value = hostName,
+                        onValueChange = { hostName = it },
+                        label = { Text("Tu nombre") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = rounds,
+                        onValueChange = { rounds = it.filter { char -> char.isDigit() }.take(2) },
+                        label = { Text("Rondas (máx 10)") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = hostName.isNotBlank() && rounds.toIntOrNull() != null,
+                    onClick = {
+                        val totalRounds = rounds.toIntOrNull()?.coerceIn(1, 10) ?: 3
+                        viewModel.createSession(hostName.trim(), totalRounds)
+                        showCreateDialog = false
+                        onNavigateToLobby()
+                    }
+                ) { Text("Crear") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCreateDialog = false }) { Text("Cancelar") }
             }
         )
+    }
 
-        Spacer(modifier = Modifier.height(24.dp))
-        Text("Unirse a partida", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
-        OutlinedTextField(
-            value = friendName,
-            onValueChange = { friendName = it },
-            label = { Text("Tu nombre") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        PrimaryButton(
-            text = "Unirme",
-            enabled = friendName.isNotBlank(),
-            onClick = {
-                viewModel.joinSession(friendName.trim())
-                onNavigateToLobby()
+    if (showJoinDialog) {
+        AlertDialog(
+            onDismissRequest = { showJoinDialog = false },
+            title = { Text("Unirse a partida", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedTextField(
+                        value = friendName,
+                        onValueChange = { friendName = it },
+                        label = { Text("Tu nombre") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = friendName.isNotBlank(),
+                    onClick = {
+                        viewModel.joinSession(friendName.trim())
+                        showJoinDialog = false
+                        onNavigateToLobby()
+                    }
+                ) { Text("Unirme") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showJoinDialog = false }) { Text("Cancelar") }
             }
         )
     }
