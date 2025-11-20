@@ -2,7 +2,6 @@ package com.spothit
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import com.spothit.BuildConfig
 import com.spothit.core.network.LobbySocketClient
 import com.spothit.core.repository.GameRepository
 import com.spothit.core.repository.InMemoryGameRepository
@@ -22,6 +21,7 @@ import com.spothit.network.RetrofitProvider
 import com.spothit.network.SpotifyApi
 import com.spothit.network.TokenProvider
 import com.spothit.network.WebSocketManager
+import com.spotify.sdk.android.auth.BuildConfig
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import okhttp3.OkHttpClient
