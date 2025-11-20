@@ -3,6 +3,7 @@ package com.spothit.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,8 +17,8 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -47,7 +48,7 @@ fun GameScreen(viewModel: GameViewModel, onShowResults: () -> Unit, onBack: () -
     val currentPlayerId = session?.host?.id
     val currentScore = currentPlayerId?.let { session?.scores?.get(it) } ?: 0
     val roundPoints = session?.lastGuessResult?.let { result ->
-        "([+\-]?\d+)".toRegex().find(result)?.groupValues?.getOrNull(1)?.toIntOrNull()
+        """([+-]?\d+)""".toRegex().find(result)?.groupValues?.getOrNull(1)?.toIntOrNull()
     }
     var guess by remember { mutableStateOf("") }
 
@@ -185,10 +186,11 @@ private fun YearInput(value: String, onValueChange: (String) -> Unit) {
         label = { Text("¿En qué año salió?") },
         singleLine = true,
         modifier = Modifier.fillMaxWidth(),
-        colors = TextFieldDefaults.outlinedTextFieldColors(
+        colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = MaterialTheme.colorScheme.primary,
             unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-            textColor = MaterialTheme.colorScheme.onSurface,
+            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
             cursorColor = MaterialTheme.colorScheme.primary,
             focusedLabelColor = MaterialTheme.colorScheme.primary,
             containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)
