@@ -2,14 +2,15 @@ package com.spothit.auth
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.spothit.core.auth.AuthTokens
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 interface TokenStorage {
-    val tokensFlow: Flow<SpotifyTokens?>
-    fun saveTokens(tokens: SpotifyTokens)
-    fun getTokens(): SpotifyTokens?
+    val tokensFlow: Flow<AuthTokens?>
+    fun saveTokens(tokens: AuthTokens)
+    fun getTokens(): AuthTokens?
     fun clear()
 }
 
@@ -26,13 +27,13 @@ class EncryptedTokenStorage(
         }
     }
 
-    override val tokensFlow: Flow<SpotifyTokens?> = _tokensFlow.asStateFlow()
+    override val tokensFlow: Flow<AuthTokens?> = _tokensFlow.asStateFlow()
 
     init {
         sharedPreferences.registerOnSharedPreferenceChangeListener(listener)
     }
 
-    override fun saveTokens(tokens: SpotifyTokens) {
+    override fun saveTokens(tokens: AuthTokens) {
         sharedPreferences.edit()
             .putString(KEY_ACCESS_TOKEN, tokens.accessToken)
             .putString(KEY_REFRESH_TOKEN, tokens.refreshToken)
@@ -41,14 +42,14 @@ class EncryptedTokenStorage(
         _tokensFlow.value = tokens
     }
 
-    override fun getTokens(): SpotifyTokens? = _tokensFlow.value
+    override fun getTokens(): AuthTokens? = _tokensFlow.value
 
     override fun clear() {
         sharedPreferences.edit().clear().apply()
         _tokensFlow.value = null
     }
 
-    private fun readTokens(): SpotifyTokens? {
+    private fun readTokens(): AuthTokens? {
         val accessToken = sharedPreferences.getString(KEY_ACCESS_TOKEN, null)
         val refreshToken = sharedPreferences.getString(KEY_REFRESH_TOKEN, null)
         val expiresAt = sharedPreferences.getLong(KEY_EXPIRES_AT, -1)
@@ -56,7 +57,7 @@ class EncryptedTokenStorage(
         if (accessToken.isNullOrBlank() || refreshToken.isNullOrBlank() || expiresAt <= 0) {
             return null
         }
-        return SpotifyTokens(accessToken = accessToken, refreshToken = refreshToken, expiresAtMillis = expiresAt)
+        return AuthTokens(accessToken = accessToken, refreshToken = refreshToken, expiresAtMillis = expiresAt)
     }
 
     private companion object {
