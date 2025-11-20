@@ -8,15 +8,11 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -47,6 +43,7 @@ fun SpotHitCard(
 @Composable
 fun SpotHitListRow(
     avatarText: String,
+    avatarUrl: String? = null,
     primaryText: String,
     secondaryText: String,
     modifier: Modifier = Modifier,
@@ -73,8 +70,9 @@ fun SpotHitListRow(
     ) {
         leadingContent?.invoke()
 
-        Avatar(
-            text = avatarText.firstOrNull()?.uppercase() ?: "?",
+        PlayerAvatar(
+            avatarUrl = avatarUrl,
+            displayName = avatarText,
             backgroundColor = avatarColor,
             contentColor = avatarContentColor
         )
@@ -94,22 +92,5 @@ fun SpotHitListRow(
         }
 
         trailingContent?.invoke()
-    }
-}
-
-@Composable
-private fun Avatar(text: String, backgroundColor: Color, contentColor: Color) {
-    androidx.compose.foundation.layout.Box(
-        modifier = Modifier
-            .size(48.dp)
-            .clip(CircleShape)
-            .background(backgroundColor),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-            color = contentColor
-        )
     }
 }

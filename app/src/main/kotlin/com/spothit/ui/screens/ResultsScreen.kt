@@ -89,6 +89,7 @@ private fun ScoreRow(position: Int, player: Player?, points: Int, isCurrentUser:
     ) {
         SpotHitListRow(
             avatarText = player?.name ?: "?",
+            avatarUrl = player?.avatarUrl,
             primaryText = player?.name ?: "Jugador",
             secondaryText = if (isCurrentUser) "Tú" else "${player?.id ?: ""}",
             highlight = isCurrentUser,

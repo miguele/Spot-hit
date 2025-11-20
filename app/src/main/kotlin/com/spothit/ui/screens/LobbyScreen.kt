@@ -162,6 +162,7 @@ private fun PlayerRow(player: Player, isHost: Boolean) {
     SpotHitListRow(
         modifier = Modifier.fillMaxWidth(),
         avatarText = player.name,
+        avatarUrl = player.avatarUrl,
         primaryText = player.name,
         secondaryText = if (isHost) "Anfitrión" else "En lobby",
         highlight = true,
