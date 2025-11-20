@@ -1,0 +1,6 @@
+<resources>
+    <color name="spot_black">#0B0B0B</color>
+    <color name="spot_green">#1DB954</color>
+    <color name="spot_white">#FFFFFF</color>
+    <color name="spot_gray">#1E1E1E</color>
+</resources>

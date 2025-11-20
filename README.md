@@ -1,20 +1,24 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# SpotHit Android (Kotlin + Jetpack Compose)
 
-# Run and deploy your AI Studio app
+Aplicación Android que replica el flujo de Spot-Hit usando Jetpack Compose y una arquitectura sencilla basada en casos de uso. Todo el código está escrito en Kotlin para facilitar la extensión y despliegue en Android Studio.
 
-This contains everything you need to run your app locally.
+## Puntos clave
+- Arquitectura limpia: repositorio, casos de uso y `ViewModel` desacoplados.
+- UI con Jetpack Compose y navegación declarativa.
+- Repositorio en memoria para poder iterar sin dependencias externas.
+- Sin assets binarios: evita el error `binary_files_not_supported` al crear el PR.
 
-View your app in AI Studio: https://ai.studio/apps/drive/157peo4OxZX_0qIdfA-UP_0tDcP-W0SNZ
+## Estructura
+- `app/src/main/kotlin/com/spothit/core`: modelos, repositorio y casos de uso.
+- `app/src/main/kotlin/com/spothit/ui`: pantallas Compose y navegación.
+- `MainActivity` y `SpotHitApp`: punto de entrada y tema.
 
-## Run Locally
+## Ejecutar
+1. Abre el proyecto en Android Studio Hedgehog o superior.
+2. Usa JDK 17.
+3. Sincroniza Gradle y lanza la app en un emulador o dispositivo con Android 7.0+ (API 24).
 
-**Prerequisites:**  Node.js
-
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## Próximos pasos sugeridos
+- Sustituir el repositorio en memoria por uno conectado a tu backend/Firebase.
+- Añadir reproducción real de Spotify y pagos IAP respetando SOLID a través de interfaces.
+- Incluir pruebas de UI con `ui-test-junit4`.
