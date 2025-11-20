@@ -3,6 +3,7 @@ plugins {
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
     id("com.google.devtools.ksp")
+    id("androidx.room") version "2.6.1"
 }
 
 android {
@@ -53,6 +54,10 @@ android {
     }
 }
 
+room {
+    schemaDirectory("${projectDir}/schemas")
+}
+
 dependencies {
     val retrofitVersion = "2.11.0"
     val okHttpVersion = "4.12.0"
@@ -99,6 +104,7 @@ dependencies {
     testImplementation("androidx.room:room-testing:$roomVersion")
     testImplementation("androidx.test:core-ktx:1.6.1")
     testImplementation("org.robolectric:robolectric:4.13")
+    testImplementation("org.robolectric:android-all:14-robolectric-10818077")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
