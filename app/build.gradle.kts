@@ -54,6 +54,7 @@ dependencies {
     val retrofitVersion = "2.11.0"
     val okHttpVersion = "4.12.0"
     val roomVersion = "2.6.1"
+    val securityCryptoVersion = "1.1.0-alpha06"
 
     val composeBom = platform("androidx.compose:compose-bom:2024.10.01")
     implementation(composeBom)
@@ -73,7 +74,7 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.material:material-icons-extended")
-    implementation("androidx.security:security-crypto:1.1.0-alpha06")
+    implementation("androidx.security:security-crypto:$securityCryptoVersion")
     implementation("com.spotify.android:auth:2.1.1")
     implementation("com.squareup.okhttp3:okhttp:$okHttpVersion")
     implementation("com.squareup.okhttp3:logging-interceptor:$okHttpVersion")

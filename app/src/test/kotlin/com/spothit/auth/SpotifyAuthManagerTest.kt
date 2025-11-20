@@ -4,6 +4,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import java.security.SecureRandom
 
 class SpotifyAuthManagerTest {
@@ -60,15 +62,21 @@ class SpotifyAuthManagerTest {
 
     private class InMemoryTokenStorage : TokenStorage {
         private var tokens: SpotifyTokens? = null
+        private val tokensState = MutableStateFlow<SpotifyTokens?>(null)
+
+        override val tokensFlow: Flow<SpotifyTokens?>
+            get() = tokensState
 
         override fun saveTokens(tokens: SpotifyTokens) {
             this.tokens = tokens
+            tokensState.value = tokens
         }
 
-        override fun getTokens(): SpotifyTokens? = tokens
+        override fun getTokens(): SpotifyTokens? = tokensState.value
 
         override fun clear() {
             tokens = null
+            tokensState.value = null
         }
     }
 }
