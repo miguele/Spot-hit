@@ -7,6 +7,8 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
 import kotlin.jvm.Volatile
 
 interface TokenStorage {
@@ -24,15 +26,20 @@ class EncryptedTokenStorage(
     private val sharedPreferences: SharedPreferences = prefsFactory.create(context, PREF_NAME)
     @Volatile
     private var cachedTokens: AuthTokens? = readTokens()
+    private val tokensState = MutableStateFlow(cachedTokens)
 
     override val tokensFlow: Flow<AuthTokens?> = callbackFlow {
-        trySend(cachedTokens)
-
         val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
             if (key == null || key in TOKEN_KEYS) {
                 val tokens = readTokens()
                 cachedTokens = tokens
-                trySend(tokens)
+                tokensState.value = tokens
+            }
+        }
+
+        val subscription = launch {
+            tokensState.distinctUntilChanged().collect { token ->
+                trySend(token)
             }
         }
 
@@ -40,6 +47,7 @@ class EncryptedTokenStorage(
 
         awaitClose {
             sharedPreferences.unregisterOnSharedPreferenceChangeListener(listener)
+            subscription.cancel()
         }
     }.distinctUntilChanged()
 
@@ -50,6 +58,7 @@ class EncryptedTokenStorage(
             .putLong(KEY_EXPIRES_AT, tokens.expiresAtMillis)
             .commit()
         cachedTokens = tokens
+        tokensState.value = tokens
     }
 
     override fun getTokens(): AuthTokens? = cachedTokens
@@ -57,6 +66,7 @@ class EncryptedTokenStorage(
     override fun clear() {
         sharedPreferences.edit().clear().commit()
         cachedTokens = null
+        tokensState.value = null
     }
 
     private fun readTokens(): AuthTokens? {
