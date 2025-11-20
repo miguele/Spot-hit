@@ -16,6 +16,7 @@ class PendingAuthStorage(context: Context) {
             .putString(KEY_STATE, pkceParameters.state)
             .putString(KEY_HOST_NAME, creationParams.hostName)
             .putInt(KEY_TOTAL_ROUNDS, creationParams.totalRounds)
+            .putString(KEY_AVATAR_URL, creationParams.avatarUrl)
             .apply()
     }
 
@@ -38,12 +39,13 @@ class PendingAuthStorage(context: Context) {
     fun getCreationParams(): CreationParams? {
         val hostName = preferences.getString(KEY_HOST_NAME, null)
         val totalRounds = preferences.getInt(KEY_TOTAL_ROUNDS, -1)
+        val avatarUrl = preferences.getString(KEY_AVATAR_URL, null)
 
         if (hostName.isNullOrBlank() || totalRounds <= 0) {
             return null
         }
 
-        return CreationParams(hostName = hostName, totalRounds = totalRounds)
+        return CreationParams(hostName = hostName, totalRounds = totalRounds, avatarUrl = avatarUrl)
     }
 
     fun clear() {
@@ -57,5 +59,6 @@ class PendingAuthStorage(context: Context) {
         const val KEY_STATE = "state"
         const val KEY_HOST_NAME = "host_name"
         const val KEY_TOTAL_ROUNDS = "total_rounds"
+        const val KEY_AVATAR_URL = "avatar_url"
     }
 }

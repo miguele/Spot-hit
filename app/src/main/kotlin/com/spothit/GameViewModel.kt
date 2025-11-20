@@ -67,19 +67,19 @@ class GameViewModel(
         }
     }
 
-    fun createSession(hostName: String, totalRounds: Int, mode: GameMode = GameMode.GUESS_THE_YEAR) {
+    fun createSession(hostName: String, totalRounds: Int, mode: GameMode = GameMode.GUESS_THE_YEAR, avatarUrl: String? = null) {
         viewModelScope.launch {
             runAction {
-                val host = Player(id = hostName.lowercase(), name = hostName, role = PlayerRole.HOST)
+                val host = Player(id = hostName.lowercase(), name = hostName, avatarUrl = avatarUrl, role = PlayerRole.HOST)
                 createGameUseCase(host, totalRounds, mode)
             }
         }
     }
 
-    fun joinSession(playerName: String, lobbyCode: String, role: PlayerRole = PlayerRole.GUEST) {
+    fun joinSession(playerName: String, lobbyCode: String, role: PlayerRole = PlayerRole.GUEST, avatarUrl: String? = null) {
         viewModelScope.launch {
             runAction {
-                val player = Player(id = playerName.lowercase(), name = playerName, role = role)
+                val player = Player(id = playerName.lowercase(), name = playerName, avatarUrl = avatarUrl, role = role)
                 joinGameUseCase(player, lobbyCode, role)
             }
         }
@@ -105,8 +105,8 @@ class GameViewModel(
         viewModelScope.launch { runAction { resetGameUseCase() } }
     }
 
-    fun startAuthorization(hostName: String, totalRounds: Int) {
-        val creationParams = CreationParams(hostName.trim(), totalRounds)
+    fun startAuthorization(hostName: String, totalRounds: Int, avatarUrl: String?) {
+        val creationParams = CreationParams(hostName.trim(), totalRounds, avatarUrl)
         pendingCreation = creationParams
         val request = spotifyAuthManager.createAuthorizationIntent(SPOTIFY_SCOPES)
         pendingPkce = request.pkceParameters
@@ -172,6 +172,7 @@ class GameViewModel(
                 val host = Player(
                     id = creationParams.hostName.lowercase(),
                     name = creationParams.hostName,
+                    avatarUrl = creationParams.avatarUrl,
                     role = PlayerRole.HOST
                 )
                 createGameUseCase(host, creationParams.totalRounds, GameMode.GUESS_THE_YEAR)
@@ -296,7 +297,7 @@ data class GameUiState(
     val isFinished: Boolean get() = session?.state == SessionState.FINISHED
 }
 
-data class CreationParams(val hostName: String, val totalRounds: Int)
+data class CreationParams(val hostName: String, val totalRounds: Int, val avatarUrl: String?)
 
 private val SPOTIFY_SCOPES = listOf(
     "playlist-read-private",
