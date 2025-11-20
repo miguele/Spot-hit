@@ -3,6 +3,7 @@ package com.spothit.auth
 import android.content.Intent
 import android.net.Uri
 import androidx.annotation.VisibleForTesting
+import android.util.Base64
 import com.spothit.core.auth.AuthRedirectResult
 import com.spothit.core.auth.AuthSessionManager
 import com.spothit.core.auth.AuthTokens
@@ -18,7 +19,6 @@ import okhttp3.RequestBody
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import java.security.SecureRandom
-import java.util.Base64
 
 private const val AUTHORIZE_URL = "https://accounts.spotify.com/authorize"
 private const val TOKEN_URL = "https://accounts.spotify.com/api/token"
@@ -156,22 +156,24 @@ class SpotifyAuthManager(
         fun generateCodeVerifier(random: SecureRandom): String {
             val codeVerifierBytes = ByteArray(64)
             random.nextBytes(codeVerifierBytes)
-            return Base64.getUrlEncoder()
-                .withoutPadding()
-                .encodeToString(codeVerifierBytes)
+            return codeVerifierBytes.encodeUrlSafeNoPadding()
         }
 
         @VisibleForTesting
         fun generateCodeChallenge(codeVerifier: String): String {
             val digest = MessageDigest.getInstance("SHA-256")
             val hashed = digest.digest(codeVerifier.toByteArray(StandardCharsets.US_ASCII))
-            return Base64.getUrlEncoder().withoutPadding().encodeToString(hashed)
+            return hashed.encodeUrlSafeNoPadding()
         }
 
         private fun generateState(random: SecureRandom): String {
             val stateBytes = ByteArray(16)
             random.nextBytes(stateBytes)
-            return Base64.getUrlEncoder().withoutPadding().encodeToString(stateBytes)
+            return stateBytes.encodeUrlSafeNoPadding()
+        }
+
+        private fun ByteArray.encodeUrlSafeNoPadding(): String {
+            return Base64.encodeToString(this, Base64.URL_SAFE or Base64.NO_PADDING or Base64.NO_WRAP)
         }
     }
 }
