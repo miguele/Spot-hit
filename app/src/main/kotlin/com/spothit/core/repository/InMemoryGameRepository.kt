@@ -7,6 +7,7 @@ import com.spothit.core.model.Player
 import com.spothit.core.model.Placement
 import com.spothit.core.model.Song
 import com.spothit.core.model.SessionState
+import com.spothit.core.model.PlayerRole
 import com.spothit.core.model.TimelineSong
 import com.spothit.core.model.TurnState
 import kotlinx.coroutines.delay
@@ -20,8 +21,8 @@ class InMemoryGameRepository : GameRepository {
         val selectedPlaylist = session.playlist
         session = createInitialSession(selectedPlaylist).copy(
             code = generateGameCode(),
-            host = host,
-            players = listOf(host),
+            host = host.copy(role = PlayerRole.HOST),
+            players = listOf(host.copy(role = PlayerRole.HOST)),
             totalRounds = totalRounds,
             mode = mode,
             state = SessionState.WAITING
@@ -29,8 +30,12 @@ class InMemoryGameRepository : GameRepository {
         return session
     }
 
-    override suspend fun joinGame(player: Player): GameSession {
-        session = session.copy(players = session.players + player)
+    override suspend fun joinGame(player: Player, lobbyCode: String, role: PlayerRole): GameSession {
+        if (!lobbyCode.equals(session.code, ignoreCase = true)) {
+            throw IllegalArgumentException("Código de sala inválido")
+        }
+        val newPlayer = player.copy(role = role)
+        session = session.copy(players = session.players + newPlayer)
         return session
     }
 
@@ -91,7 +96,7 @@ class InMemoryGameRepository : GameRepository {
     override suspend fun currentSession(): GameSession = session
 
     private fun createInitialSession(playlist: Playlist? = null): GameSession {
-        val host = Player(id = UUID.randomUUID().toString(), name = "Anfitrión")
+        val host = Player(id = UUID.randomUUID().toString(), name = "Anfitrión", role = PlayerRole.HOST)
         val songs = bootstrapSongs()
         val selectedPlaylist = playlist?.copy(trackCount = playlist.trackCount.takeIf { it > 0 } ?: songs.size)
         return GameSession(

@@ -4,6 +4,7 @@ import com.spothit.core.model.GameMode
 import com.spothit.core.model.GameSession
 import com.spothit.core.model.Playlist
 import com.spothit.core.model.Player
+import com.spothit.core.model.PlayerRole
 import com.spothit.core.repository.GameRepository
 
 class CreateGameUseCase(private val repository: GameRepository) {
@@ -12,7 +13,11 @@ class CreateGameUseCase(private val repository: GameRepository) {
 }
 
 class JoinGameUseCase(private val repository: GameRepository) {
-    suspend operator fun invoke(player: Player): GameSession = repository.joinGame(player)
+    suspend operator fun invoke(
+        player: Player,
+        lobbyCode: String,
+        role: PlayerRole = PlayerRole.GUEST
+    ): GameSession = repository.joinGame(player, lobbyCode, role)
 }
 
 class UpdatePlaylistUseCase(private val repository: GameRepository) {

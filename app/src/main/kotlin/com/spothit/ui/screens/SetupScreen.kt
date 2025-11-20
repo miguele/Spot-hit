@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.HeadsetMic
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -54,6 +55,7 @@ import com.spothit.GameUiState
 import com.spothit.GameViewModel
 import com.spothit.core.model.Playlist
 import com.spothit.ui.components.PrimaryButton
+import com.spothit.ui.components.SecondaryButton
 import com.spothit.ui.components.SpotHitScreen
 import kotlinx.coroutines.launch
 
@@ -77,6 +79,7 @@ fun SetupScreen(
     var selectedMode by rememberSaveable { mutableStateOf(initialMode) }
     var hostName by rememberSaveable { mutableStateOf("") }
     var guestName by rememberSaveable { mutableStateOf("") }
+    var lobbyCode by rememberSaveable { mutableStateOf("") }
     var rounds by rememberSaveable { mutableStateOf("3") }
     var hasNavigated by rememberSaveable { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
@@ -146,10 +149,19 @@ fun SetupScreen(
 
                 SetupMode.GUEST -> GuestCard(
                     guestName = guestName,
+                    gameCode = lobbyCode,
                     isLoading = uiState.isLoading,
                     onGuestNameChange = { guestName = it },
+                    onGameCodeChange = { lobbyCode = it },
+                    onScanQr = {
+                        scope.launch {
+                            snackbarHostState.showSnackbar(
+                                message = "Escaneo QR disponible próximamente"
+                            )
+                        }
+                    },
                     onJoin = {
-                        viewModel.joinSession(guestName.trim())
+                        viewModel.joinSession(guestName.trim(), lobbyCode.trim().uppercase())
                         hasNavigated = false
                     }
                 )
@@ -307,8 +319,11 @@ private fun HostCard(
 @Composable
 private fun GuestCard(
     guestName: String,
+    gameCode: String,
     isLoading: Boolean,
     onGuestNameChange: (String) -> Unit,
+    onGameCodeChange: (String) -> Unit,
+    onScanQr: () -> Unit,
     onJoin: () -> Unit
 ) {
     Card(
@@ -322,7 +337,7 @@ private fun GuestCard(
                 style = MaterialTheme.typography.titleMedium.copy(color = Color.White, fontWeight = FontWeight.Bold)
             )
             Text(
-                text = "Ingresa tu nombre y espera a que el DJ comparta el código de sala.",
+                text = "Ingresa tu nombre y el código de sala que comparte el DJ o escanea el QR.",
                 style = MaterialTheme.typography.bodyMedium.copy(color = Color(0xFF9AA3B5))
             )
             OutlinedTextField(
@@ -332,9 +347,42 @@ private fun GuestCard(
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !isLoading
             )
+
+            Text(
+                text = "Datos de la partida",
+                style = MaterialTheme.typography.titleSmall.copy(color = Color.White, fontWeight = FontWeight.SemiBold)
+            )
+            Text(
+                text = "Escribe el código o escanéalo para confirmar la sala correcta.",
+                style = MaterialTheme.typography.bodySmall.copy(color = Color(0xFF9AA3B5))
+            )
+            val normalizedCode = gameCode.uppercase()
+            val isCodeIncomplete = normalizedCode.length in 1..5
+            OutlinedTextField(
+                value = normalizedCode,
+                onValueChange = { value -> onGameCodeChange(value.filter { !it.isWhitespace() }.uppercase().take(6)) },
+                label = { Text("Código de sala") },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !isLoading,
+                isError = isCodeIncomplete,
+                supportingText = {
+                    Text(
+                        text = if (isCodeIncomplete) "El código debe tener 6 caracteres" else "Pide al DJ el código o escanea el QR",
+                        color = if (isCodeIncomplete) MaterialTheme.colorScheme.error else Color(0xFF9AA3B5)
+                    )
+                },
+                leadingIcon = {
+                    Icon(imageVector = Icons.Default.QrCodeScanner, contentDescription = null)
+                }
+            )
+            SecondaryButton(
+                text = "Escanear QR",
+                onClick = onScanQr,
+                enabled = !isLoading
+            )
             PrimaryButton(
                 text = if (isLoading) "Uniendo..." else "Unirme a la sala",
-                enabled = guestName.isNotBlank() && !isLoading,
+                enabled = guestName.isNotBlank() && normalizedCode.length == 6 && !isLoading,
                 onClick = onJoin
             )
         }

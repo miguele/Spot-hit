@@ -14,8 +14,14 @@ data class Player(
     val id: String,
     val name: String,
     val avatarUrl: String? = null,
-    val isPremium: Boolean = false
+    val isPremium: Boolean = false,
+    val role: PlayerRole = PlayerRole.GUEST
 )
+
+enum class PlayerRole {
+    HOST,
+    GUEST
+}
 
 data class Song(
     val id: String,

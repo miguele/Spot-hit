@@ -8,6 +8,7 @@ import com.spothit.core.model.GameMode
 import com.spothit.core.model.GameSession
 import com.spothit.core.model.Playlist
 import com.spothit.core.model.Player
+import com.spothit.core.model.PlayerRole
 import com.spothit.core.model.SessionState
 import com.spothit.core.auth.AuthRedirectResult
 import com.spothit.core.auth.AuthorizationRequest
@@ -69,17 +70,17 @@ class GameViewModel(
     fun createSession(hostName: String, totalRounds: Int, mode: GameMode = GameMode.GUESS_THE_YEAR) {
         viewModelScope.launch {
             runAction {
-                val host = Player(id = hostName.lowercase(), name = hostName)
+                val host = Player(id = hostName.lowercase(), name = hostName, role = PlayerRole.HOST)
                 createGameUseCase(host, totalRounds, mode)
             }
         }
     }
 
-    fun joinSession(playerName: String) {
+    fun joinSession(playerName: String, lobbyCode: String, role: PlayerRole = PlayerRole.GUEST) {
         viewModelScope.launch {
             runAction {
-                val player = Player(id = playerName.lowercase(), name = playerName)
-                joinGameUseCase(player)
+                val player = Player(id = playerName.lowercase(), name = playerName, role = role)
+                joinGameUseCase(player, lobbyCode, role)
             }
         }
     }
@@ -168,7 +169,11 @@ class GameViewModel(
         viewModelScope.launch {
             runAction {
                 updatePlaylistUseCase(playlist)
-                val host = Player(id = creationParams.hostName.lowercase(), name = creationParams.hostName)
+                val host = Player(
+                    id = creationParams.hostName.lowercase(),
+                    name = creationParams.hostName,
+                    role = PlayerRole.HOST
+                )
                 createGameUseCase(host, creationParams.totalRounds, GameMode.GUESS_THE_YEAR)
             }
             pendingCreation = null
