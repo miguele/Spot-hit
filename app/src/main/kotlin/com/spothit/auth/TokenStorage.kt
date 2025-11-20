@@ -3,9 +3,11 @@ package com.spothit.auth
 import android.content.Context
 import android.content.SharedPreferences
 import com.spothit.core.auth.AuthTokens
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlin.jvm.Volatile
 
 interface TokenStorage {
     val tokensFlow: Flow<AuthTokens?>
@@ -20,18 +22,26 @@ class EncryptedTokenStorage(
 ) : TokenStorage {
 
     private val sharedPreferences: SharedPreferences = prefsFactory.create(context, PREF_NAME)
-    private val _tokensFlow = MutableStateFlow(readTokens())
-    private val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-        if (key == null || key in TOKEN_KEYS) {
-            _tokensFlow.value = readTokens()
+    @Volatile
+    private var cachedTokens: AuthTokens? = readTokens()
+
+    override val tokensFlow: Flow<AuthTokens?> = callbackFlow {
+        trySend(cachedTokens)
+
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == null || key in TOKEN_KEYS) {
+                val tokens = readTokens()
+                cachedTokens = tokens
+                trySend(tokens)
+            }
         }
-    }
 
-    override val tokensFlow: Flow<AuthTokens?> = _tokensFlow.asStateFlow()
-
-    init {
         sharedPreferences.registerOnSharedPreferenceChangeListener(listener)
-    }
+
+        awaitClose {
+            sharedPreferences.unregisterOnSharedPreferenceChangeListener(listener)
+        }
+    }.distinctUntilChanged()
 
     override fun saveTokens(tokens: AuthTokens) {
         sharedPreferences.edit()
@@ -39,14 +49,14 @@ class EncryptedTokenStorage(
             .putString(KEY_REFRESH_TOKEN, tokens.refreshToken)
             .putLong(KEY_EXPIRES_AT, tokens.expiresAtMillis)
             .apply()
-        _tokensFlow.value = tokens
+        cachedTokens = tokens
     }
 
-    override fun getTokens(): AuthTokens? = _tokensFlow.value
+    override fun getTokens(): AuthTokens? = cachedTokens
 
     override fun clear() {
         sharedPreferences.edit().clear().apply()
-        _tokensFlow.value = null
+        cachedTokens = null
     }
 
     private fun readTokens(): AuthTokens? {
