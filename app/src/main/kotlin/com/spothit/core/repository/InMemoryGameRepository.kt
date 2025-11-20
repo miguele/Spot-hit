@@ -17,7 +17,8 @@ class InMemoryGameRepository : GameRepository {
     private var session: GameSession = createInitialSession()
 
     override suspend fun createGame(host: Player, totalRounds: Int, mode: GameMode): GameSession {
-        session = createInitialSession().copy(
+        val selectedPlaylist = session.playlist
+        session = createInitialSession(selectedPlaylist).copy(
             code = generateGameCode(),
             host = host,
             players = listOf(host),
@@ -89,14 +90,15 @@ class InMemoryGameRepository : GameRepository {
 
     override suspend fun currentSession(): GameSession = session
 
-    private fun createInitialSession(): GameSession {
+    private fun createInitialSession(playlist: Playlist? = null): GameSession {
         val host = Player(id = UUID.randomUUID().toString(), name = "Anfitrión")
         val songs = bootstrapSongs()
+        val selectedPlaylist = playlist?.copy(trackCount = playlist.trackCount.takeIf { it > 0 } ?: songs.size)
         return GameSession(
             code = generateGameCode(),
             host = host,
             players = listOf(host),
-            playlist = bootstrapPlaylist(songs),
+            playlist = selectedPlaylist ?: bootstrapPlaylist(songs),
             mode = GameMode.GUESS_THE_YEAR,
             currentRound = 0,
             totalRounds = songs.size,

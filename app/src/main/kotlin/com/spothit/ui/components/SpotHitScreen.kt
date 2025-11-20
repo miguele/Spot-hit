@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun SpotHitScreen(
     modifier: Modifier = Modifier,
+    snackbarHost: (@Composable () -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
     val gradientBackground = Brush.verticalGradient(
@@ -30,6 +31,7 @@ fun SpotHitScreen(
                 .padding(horizontal = 24.dp, vertical = 32.dp)
                 .then(modifier)
         ) {
+            snackbarHost?.invoke()
             content()
         }
     }

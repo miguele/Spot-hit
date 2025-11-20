@@ -4,27 +4,39 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,19 +45,41 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.spothit.core.model.Playlist
 import com.spothit.GameViewModel
 import com.spothit.ui.components.PrimaryButton
 import com.spothit.ui.components.SpotHitScreen
+import kotlinx.coroutines.launch
 
 @Composable
 fun HomeScreen(viewModel: GameViewModel, onNavigateToLobby: () -> Unit) {
+    val uiState by viewModel.uiState.collectAsState()
     var hostName by remember { mutableStateOf("") }
     var friendName by remember { mutableStateOf("") }
     var rounds by remember { mutableStateOf("3") }
     var showCreateDialog by remember { mutableStateOf(false) }
     var showJoinDialog by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
-    SpotHitScreen(modifier = Modifier.fillMaxSize()) {
+    LaunchedEffect(uiState.creationCompleted) {
+        if (uiState.creationCompleted) {
+            onNavigateToLobby()
+            viewModel.consumeCreationCompleted()
+        }
+    }
+
+    LaunchedEffect(uiState.authError, uiState.playlistError, uiState.error) {
+        listOf(uiState.authError, uiState.playlistError, uiState.error)
+            .filterNotNull()
+            .forEach { message ->
+                scope.launch {
+                    snackbarHostState.showSnackbar(message, duration = SnackbarDuration.Short)
+                }
+            }
+    }
+
+    SpotHitScreen(modifier = Modifier.fillMaxSize(), snackbarHost = { SnackbarHost(snackbarHostState) }) {
         Column(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.SpaceBetween,
@@ -153,9 +187,8 @@ fun HomeScreen(viewModel: GameViewModel, onNavigateToLobby: () -> Unit) {
                     enabled = hostName.isNotBlank() && rounds.toIntOrNull() != null,
                     onClick = {
                         val totalRounds = rounds.toIntOrNull()?.coerceIn(1, 10) ?: 3
-                        viewModel.createSession(hostName.trim(), totalRounds)
+                        viewModel.startAuthorization(hostName.trim(), totalRounds)
                         showCreateDialog = false
-                        onNavigateToLobby()
                     }
                 ) { Text("Crear") }
             },
@@ -193,5 +226,96 @@ fun HomeScreen(viewModel: GameViewModel, onNavigateToLobby: () -> Unit) {
                 TextButton(onClick = { showJoinDialog = false }) { Text("Cancelar") }
             }
         )
+    }
+
+    if (uiState.showPlaylistSelection) {
+        PlaylistSelectionDialog(
+            uiState = uiState,
+            onPlaylistSelected = { viewModel.selectPlaylistForPreview(it) },
+            onConfirm = {
+                uiState.selectedPlaylist?.let { playlist ->
+                    viewModel.selectPlaylistAndCreate(playlist)
+                }
+            },
+            onRetry = { viewModel.retryPlaylistLoad() }
+        )
+    }
+}
+
+@Composable
+private fun PlaylistSelectionDialog(
+    uiState: com.spothit.GameUiState,
+    onPlaylistSelected: (Playlist) -> Unit,
+    onConfirm: () -> Unit,
+    onRetry: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = {},
+        title = { Text("Selecciona tu playlist") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                if (uiState.isLoadingPlaylists) {
+                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                } else {
+                    if (uiState.playlists.isEmpty()) {
+                        Text("No encontramos playlists en tu cuenta.")
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(260.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            contentPadding = PaddingValues(vertical = 4.dp)
+                        ) {
+                            items(uiState.playlists) { playlist ->
+                                PlaylistRow(
+                                    playlist = playlist,
+                                    selected = uiState.selectedPlaylist?.id == playlist.id,
+                                    onClick = { onPlaylistSelected(playlist) }
+                                )
+                            }
+                        }
+                    }
+                }
+
+                uiState.playlistError?.let {
+                    Text(text = it, color = MaterialTheme.colorScheme.error)
+                    TextButton(onClick = onRetry) { Text("Reintentar") }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = uiState.selectedPlaylist != null && uiState.hasValidAccessToken && !uiState.isLoadingPlaylists,
+                onClick = onConfirm
+            ) { Text("Usar playlist") }
+        },
+        dismissButton = {
+            TextButton(onClick = onRetry, enabled = !uiState.isLoadingPlaylists) { Text("Actualizar") }
+        }
+    )
+}
+
+@Composable
+private fun PlaylistRow(playlist: Playlist, selected: Boolean, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        RadioButton(selected = selected, onClick = onClick)
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = playlist.name, fontWeight = FontWeight.SemiBold)
+            Text(
+                text = "${playlist.trackCount} canciones",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+            )
+        }
     }
 }

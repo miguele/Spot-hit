@@ -2,11 +2,16 @@ package com.spothit
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.spothit.auth.SpotifyAuthManager
+import com.spothit.auth.TokenStorage
 import com.spothit.core.model.GameMode
 import com.spothit.core.model.GameSession
 import com.spothit.core.model.Playlist
 import com.spothit.core.model.Player
 import com.spothit.core.model.SessionState
+import com.spothit.core.auth.AuthRedirectResult
+import com.spothit.core.auth.AuthorizationRequest
+import com.spothit.core.auth.PkceParameters
 import com.spothit.core.usecase.CreateGameUseCase
 import com.spothit.core.usecase.FinishGameUseCase
 import com.spothit.core.usecase.GetSessionUseCase
@@ -15,10 +20,17 @@ import com.spothit.core.usecase.ResetGameUseCase
 import com.spothit.core.usecase.StartRoundUseCase
 import com.spothit.core.usecase.SubmitGuessUseCase
 import com.spothit.core.usecase.UpdatePlaylistUseCase
+import com.spothit.auth.SessionProvider
+import com.spothit.network.InMemoryTokenProvider
+import com.spothit.network.SpotifyApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
+import java.io.IOException
 
 class GameViewModel(
     private val createGameUseCase: CreateGameUseCase,
@@ -28,14 +40,28 @@ class GameViewModel(
     private val finishGameUseCase: FinishGameUseCase,
     private val resetGameUseCase: ResetGameUseCase,
     private val updatePlaylistUseCase: UpdatePlaylistUseCase,
-    private val getSessionUseCase: GetSessionUseCase
+    private val getSessionUseCase: GetSessionUseCase,
+    private val spotifyAuthManager: SpotifyAuthManager,
+    private val sessionProvider: SessionProvider,
+    private val spotifyApi: SpotifyApi,
+    private val tokenStorage: TokenStorage,
+    private val tokenProvider: InMemoryTokenProvider
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(GameUiState())
     val uiState: StateFlow<GameUiState> = _uiState.asStateFlow()
 
+    private var pendingPkce: PkceParameters? = null
+    private var pendingCreation: CreationParams? = null
+
     init {
         viewModelScope.launch { refreshSession() }
+        viewModelScope.launch {
+            tokenStorage.tokensFlow.collectLatest { tokens ->
+                tokenProvider.update(tokens?.accessToken)
+                _uiState.value = _uiState.value.copy(hasValidAccessToken = tokens?.isExpired() == false)
+            }
+        }
     }
 
     fun createSession(hostName: String, totalRounds: Int, mode: GameMode = GameMode.GUESS_THE_YEAR) {
@@ -76,6 +102,138 @@ class GameViewModel(
         viewModelScope.launch { runAction { resetGameUseCase() } }
     }
 
+    fun startAuthorization(hostName: String, totalRounds: Int) {
+        pendingCreation = CreationParams(hostName.trim(), totalRounds)
+        val request = spotifyAuthManager.createAuthorizationIntent(SPOTIFY_SCOPES)
+        pendingPkce = request.pkceParameters
+        _uiState.value = _uiState.value.copy(
+            authorizationRequest = request,
+            authError = null,
+            playlistError = null,
+            showPlaylistSelection = false,
+            playlists = emptyList(),
+            selectedPlaylist = null,
+            creationCompleted = false
+        )
+    }
+
+    fun onAuthorizationRequestLaunched() {
+        _uiState.value = _uiState.value.copy(authorizationRequest = null)
+    }
+
+    fun handleAuthRedirect(result: AuthRedirectResult) {
+        val pkce = pendingPkce
+        if (pkce == null) {
+            _uiState.value = _uiState.value.copy(authError = "No hay solicitud de autenticación en curso")
+            return
+        }
+
+        if (result.state != pkce.state) {
+            _uiState.value = _uiState.value.copy(authError = "Estado de autenticación no coincide")
+            return
+        }
+
+        if (result.error != null) {
+            _uiState.value = _uiState.value.copy(authError = "Autorización cancelada o fallida: ${result.error}")
+            return
+        }
+
+        val code = result.code ?: run {
+            _uiState.value = _uiState.value.copy(authError = "Código de autorización ausente")
+            return
+        }
+
+        viewModelScope.launch { exchangeCodeForTokens(code, pkce) }
+    }
+
+    fun retryPlaylistLoad() {
+        viewModelScope.launch { loadPlaylists() }
+    }
+
+    fun selectPlaylistForPreview(playlist: Playlist) {
+        _uiState.value = _uiState.value.copy(selectedPlaylist = playlist)
+    }
+
+    fun selectPlaylistAndCreate(playlist: Playlist) {
+        _uiState.value = _uiState.value.copy(selectedPlaylist = playlist)
+        val creationParams = pendingCreation ?: return
+        viewModelScope.launch {
+            runAction {
+                updatePlaylistUseCase(playlist)
+                val host = Player(id = creationParams.hostName.lowercase(), name = creationParams.hostName)
+                createGameUseCase(host, creationParams.totalRounds, GameMode.GUESS_THE_YEAR)
+            }
+            pendingCreation = null
+            _uiState.value = _uiState.value.copy(
+                showPlaylistSelection = false,
+                creationCompleted = true
+            )
+        }
+    }
+
+    fun consumeCreationCompleted() {
+        _uiState.value = _uiState.value.copy(creationCompleted = false)
+    }
+
+    private suspend fun exchangeCodeForTokens(code: String, pkce: PkceParameters) {
+        _uiState.value = _uiState.value.copy(isAuthorizing = true, authError = null)
+        val tokens = spotifyAuthManager.exchangeCodeForTokens(code, pkce)
+        if (tokens == null) {
+            _uiState.value = _uiState.value.copy(isAuthorizing = false, authError = "No se pudo obtener tokens")
+            return
+        }
+        tokenProvider.update(tokens.accessToken)
+        pendingPkce = null
+        _uiState.value = _uiState.value.copy(isAuthorizing = false, hasValidAccessToken = true)
+        loadPlaylists()
+    }
+
+    private suspend fun loadPlaylists() {
+        _uiState.value = _uiState.value.copy(isLoadingPlaylists = true, playlistError = null)
+        val token = sessionProvider.getAccessToken()
+        if (token.isNullOrBlank()) {
+            _uiState.value = _uiState.value.copy(
+                isLoadingPlaylists = false,
+                playlistError = "Necesitas iniciar sesión en Spotify para continuar",
+                showPlaylistSelection = false,
+                hasValidAccessToken = false
+            )
+            return
+        }
+
+        tokenProvider.update(token)
+
+        try {
+            val playlists = withContext(Dispatchers.IO) { spotifyApi.getPlaylists().items }
+                .map { apiPlaylist ->
+                    Playlist(
+                        id = apiPlaylist.id,
+                        name = apiPlaylist.name,
+                        coverUrl = apiPlaylist.images.firstOrNull()?.url,
+                        trackCount = apiPlaylist.tracks?.total ?: 0
+                    )
+                }
+            _uiState.value = _uiState.value.copy(
+                playlists = playlists,
+                isLoadingPlaylists = false,
+                showPlaylistSelection = true,
+                hasValidAccessToken = true
+            )
+        } catch (io: IOException) {
+            _uiState.value = _uiState.value.copy(
+                playlistError = "No se pudieron cargar las playlists. Verifica tu conexión.",
+                isLoadingPlaylists = false,
+                showPlaylistSelection = true
+            )
+        } catch (t: Throwable) {
+            _uiState.value = _uiState.value.copy(
+                playlistError = "Error al cargar playlists: ${t.message}",
+                isLoadingPlaylists = false,
+                showPlaylistSelection = true
+            )
+        }
+    }
+
     private suspend fun refreshSession() {
         _uiState.value = _uiState.value.copy(session = getSessionUseCase())
     }
@@ -96,9 +254,27 @@ class GameViewModel(
 data class GameUiState(
     val session: GameSession? = null,
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val authorizationRequest: AuthorizationRequest? = null,
+    val isAuthorizing: Boolean = false,
+    val authError: String? = null,
+    val playlists: List<Playlist> = emptyList(),
+    val isLoadingPlaylists: Boolean = false,
+    val playlistError: String? = null,
+    val showPlaylistSelection: Boolean = false,
+    val selectedPlaylist: Playlist? = null,
+    val hasValidAccessToken: Boolean = false,
+    val creationCompleted: Boolean = false
 ) {
     val isLobby: Boolean get() = session?.state == SessionState.WAITING
     val isPlaying: Boolean get() = session?.state == SessionState.IN_PROGRESS
     val isFinished: Boolean get() = session?.state == SessionState.FINISHED
 }
+
+private data class CreationParams(val hostName: String, val totalRounds: Int)
+
+private val SPOTIFY_SCOPES = listOf(
+    "playlist-read-private",
+    "playlist-read-collaborative",
+    "user-read-private"
+)
