@@ -193,7 +193,8 @@ private fun YearInput(value: String, onValueChange: (String) -> Unit) {
             unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
             cursorColor = MaterialTheme.colorScheme.primary,
             focusedLabelColor = MaterialTheme.colorScheme.primary,
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)
+            focusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
+            unfocusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)
         )
     )
 }
