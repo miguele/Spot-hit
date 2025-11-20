@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.test.core.app.ApplicationProvider
 import com.spothit.core.auth.AuthTokens
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
@@ -41,6 +42,7 @@ class EncryptedTokenStorageTest {
         assertEquals(expectedTokens, newInstance.getTokens())
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     @Test
     fun `tokensFlow emits updates on save and clear`() = runTest {
         val storage = EncryptedTokenStorage(context, prefsFactory)
