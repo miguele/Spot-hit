@@ -5,8 +5,8 @@ import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 
-class EncryptedPrefsFactory {
-    fun create(
+open class EncryptedPrefsFactory {
+    open fun create(
         context: Context,
         preferenceName: String
     ): SharedPreferences {
