@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,7 +16,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.EmojiEvents
-import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -31,9 +31,10 @@ import com.spothit.GameViewModel
 import com.spothit.core.model.Player
 import com.spothit.ui.components.PrimaryButton
 import com.spothit.ui.components.SecondaryButton
+import com.spothit.ui.components.SpotHitCard
+import com.spothit.ui.components.SpotHitListRow
 import com.spothit.ui.components.SpotHitScaffold
 import com.spothit.ui.theme.GreenPrimary
-import com.spothit.ui.theme.SpotHitCardDefaults
 
 @Composable
 fun ResultsScreen(viewModel: GameViewModel, onPlayAgain: () -> Unit, onBackToHome: () -> Unit) {
@@ -80,46 +81,27 @@ fun ResultsScreen(viewModel: GameViewModel, onPlayAgain: () -> Unit, onBackToHom
 
 @Composable
 private fun ScoreRow(position: Int, player: Player?, points: Int, isCurrentUser: Boolean) {
-    val highlightModifier = if (isCurrentUser) {
-        Modifier.background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
-    } else {
-        Modifier
-    }
-    Card(
+    SpotHitCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
-        colors = SpotHitCardDefaults.colors(),
-        shape = SpotHitCardDefaults.shape,
-        elevation = SpotHitCardDefaults.elevated()
+        contentPadding = PaddingValues(0.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .then(highlightModifier)
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Medal(position)
-            Avatar(name = player?.name ?: "?")
-            Column(modifier = Modifier.weight(1f)) {
+        SpotHitListRow(
+            avatarText = player?.name ?: "?",
+            primaryText = player?.name ?: "Jugador",
+            secondaryText = if (isCurrentUser) "Tú" else "${player?.id ?: ""}",
+            highlight = isCurrentUser,
+            highlightColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+            leadingContent = { Medal(position) },
+            trailingContent = {
                 Text(
-                    text = player?.name ?: "Jugador",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = if (isCurrentUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = if (isCurrentUser) "Tú" else "${player?.id ?: ""}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text = "$points pts",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = GreenPrimary
                 )
             }
-            Text(
-                text = "$points pts",
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = GreenPrimary
-            )
-        }
+        )
     }
 }
 
@@ -147,22 +129,6 @@ private fun Medal(position: Int) {
             text = position.toString(),
             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
             modifier = Modifier.align(Alignment.Center)
-        )
-    }
-}
-
-@Composable
-private fun Avatar(name: String) {
-    Box(
-        modifier = Modifier
-            .size(44.dp)
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.surface),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = name.firstOrNull()?.uppercase() ?: "?",
-            style = MaterialTheme.typography.titleMedium
         )
     }
 }

@@ -8,14 +8,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.outlined.QrCode
-import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -24,16 +23,18 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.PaddingValues
 import com.spothit.GameViewModel
 import com.spothit.core.model.GameSession
 import com.spothit.core.model.Player
 import com.spothit.ui.components.InfoCard
 import com.spothit.ui.components.PrimaryButton
 import com.spothit.ui.components.SecondaryButton
+import com.spothit.ui.components.SpotHitCard
+import com.spothit.ui.components.SpotHitListRow
 import com.spothit.ui.components.SpotHitScaffold
 import com.spothit.ui.theme.SpotHitCardDefaults
 
@@ -81,16 +82,9 @@ private fun SessionHeader(session: GameSession?) {
 @Composable
 private fun LobbyCodeCard(session: GameSession?) {
     val code = session?.code ?: "-"
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = SpotHitCardDefaults.colors(),
-        shape = SpotHitCardDefaults.shape,
-        elevation = SpotHitCardDefaults.elevated()
-    ) {
+    SpotHitCard(modifier = Modifier.fillMaxWidth(), contentPadding = PaddingValues(20.dp)) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
+            modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
@@ -165,45 +159,18 @@ private fun PlayerList(players: List<Player>, host: Player?, modifier: Modifier 
 
 @Composable
 private fun PlayerRow(player: Player, isHost: Boolean) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                SpotHitCardDefaults.colors().containerColor.copy(alpha = 0.4f),
-                SpotHitCardDefaults.shape
-            )
-            .padding(horizontal = 14.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .size(48.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = player.name.firstOrNull()?.uppercase() ?: "?",
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.primary
+    SpotHitListRow(
+        modifier = Modifier.fillMaxWidth(),
+        avatarText = player.name,
+        primaryText = player.name,
+        secondaryText = if (isHost) "Anfitrión" else "En lobby",
+        highlight = true,
+        trailingContent = {
+            Icon(
+                imageVector = Icons.Default.Group,
+                contentDescription = null,
+                tint = if (isHost) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
             )
         }
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = player.name,
-                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
-            )
-            Text(
-                text = if (isHost) "Anfitrión" else "En lobby",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-            )
-        }
-        Icon(
-            imageVector = Icons.Default.Group,
-            contentDescription = null,
-            tint = if (isHost) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-        )
-    }
+    )
 }
