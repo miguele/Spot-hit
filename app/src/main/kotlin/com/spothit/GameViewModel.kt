@@ -42,8 +42,7 @@ class GameViewModel(
         viewModelScope.launch {
             runAction {
                 val host = Player(id = hostName.lowercase(), name = hostName)
-                val session = createGame(host, totalRounds, mode)
-                _uiState.value = _uiState.value.copy(session = session)
+                createGame(host, totalRounds, mode)
             }
         }
     }
@@ -52,40 +51,40 @@ class GameViewModel(
         viewModelScope.launch {
             runAction {
                 val player = Player(id = playerName.lowercase(), name = playerName)
-                val session = joinGame(player)
-                _uiState.value = _uiState.value.copy(session = session)
+                joinGame(player)
             }
         }
     }
 
     fun selectPlaylist(playlist: Playlist) {
-        viewModelScope.launch { runAction { _uiState.value = _uiState.value.copy(session = updatePlaylist(playlist)) } }
+        viewModelScope.launch { runAction { updatePlaylist(playlist) } }
     }
 
     fun startRound() {
-        viewModelScope.launch { runAction { _uiState.value = _uiState.value.copy(session = startRound()) } }
+        viewModelScope.launch { runAction { startRound() } }
     }
 
     fun submitGuess(playerId: String, yearGuess: Int) {
-        viewModelScope.launch { runAction { _uiState.value = _uiState.value.copy(session = submitGuess(playerId, yearGuess)) } }
+        viewModelScope.launch { runAction { submitGuess(playerId, yearGuess) } }
     }
 
     fun completeGame() {
-        viewModelScope.launch { runAction { _uiState.value = _uiState.value.copy(session = finishGame()) } }
+        viewModelScope.launch { runAction { finishGame() } }
     }
 
     fun reset() {
-        viewModelScope.launch { runAction { _uiState.value = _uiState.value.copy(session = resetGame()) } }
+        viewModelScope.launch { runAction { resetGame() } }
     }
 
     private suspend fun refreshSession() {
         _uiState.value = _uiState.value.copy(session = getSession())
     }
 
-    private suspend fun runAction(block: suspend () -> Unit) {
+    private suspend fun runAction(block: suspend () -> GameSession?) {
         try {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-            block()
+            val session = block()
+            _uiState.value = _uiState.value.copy(session = session)
         } catch (throwable: Throwable) {
             _uiState.value = _uiState.value.copy(error = throwable.message)
         } finally {
