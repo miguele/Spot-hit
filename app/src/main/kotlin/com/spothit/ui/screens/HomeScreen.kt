@@ -1,6 +1,5 @@
 package com.spothit.ui.screens
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,7 +19,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -30,7 +28,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -38,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.spothit.GameViewModel
 import com.spothit.ui.components.PrimaryButton
+import com.spothit.ui.components.SpotHitScreen
 
 @Composable
 fun HomeScreen(viewModel: GameViewModel, onNavigateToLobby: () -> Unit) {
@@ -47,98 +45,85 @@ fun HomeScreen(viewModel: GameViewModel, onNavigateToLobby: () -> Unit) {
     var showCreateDialog by remember { mutableStateOf(false) }
     var showJoinDialog by remember { mutableStateOf(false) }
 
-    val gradientBackground = Brush.verticalGradient(
-        colors = listOf(Color(0xFF0B1024), Color(0xFF111B34), Color(0xFF0B1024)),
-        startY = 0f,
-        endY = Float.POSITIVE_INFINITY
-    )
-
-    Surface(color = Color.Transparent) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(gradientBackground)
-                .padding(horizontal = 24.dp, vertical = 32.dp)
+    SpotHitScreen(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.SpaceBetween,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.SpaceBetween,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Card(
-                        modifier = Modifier.size(80.dp),
-                        shape = CircleShape,
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1DB954).copy(alpha = 0.15f))
-                    ) {
-                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                            Icon(
-                                imageVector = Icons.Default.MusicNote,
-                                contentDescription = null,
-                                tint = Color(0xFF1DB954),
-                                modifier = Modifier.size(38.dp)
-                            )
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "Spot-Hit",
-                        style = MaterialTheme.typography.headlineMedium.copy(
-                            color = Color.White,
-                            fontWeight = FontWeight.ExtraBold,
-                            letterSpacing = 0.5.sp
-                        )
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Adivina el año exacto de los temazos que amas.",
-                        style = MaterialTheme.typography.bodyLarge.copy(color = Color(0xFFE4E7EE)),
-                        textAlign = TextAlign.Center
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = "Elige un modo, invita amigos y deja que la música hable.",
-                        style = MaterialTheme.typography.bodyMedium.copy(color = Color(0xFF9AA3B5)),
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(horizontal = 8.dp)
-                    )
-                }
-
-                Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                    PrimaryButton(
-                        text = "Crear nueva partida",
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        onClick = { showCreateDialog = true }
-                    )
-                    PrimaryButton(
-                        text = "Unirse a la partida",
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        onClick = { showJoinDialog = true }
-                    )
-                }
-
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Card(
+                    modifier = Modifier.size(80.dp),
+                    shape = CircleShape,
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF1DB954).copy(alpha = 0.15f))
                 ) {
-                    Text(
-                        text = "Partidas anteriores",
-                        style = MaterialTheme.typography.bodyMedium.copy(color = Color(0xFF9AA3B5)),
-                        modifier = Modifier.clickable { /* TODO: Navegar a historial */ }
-                    )
-                    Text(
-                        text = "Powered by Spotify",
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            color = Color(0xFF6AE2A2),
-                            fontWeight = FontWeight.SemiBold
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                        Icon(
+                            imageVector = Icons.Default.MusicNote,
+                            contentDescription = null,
+                            tint = Color(0xFF1DB954),
+                            modifier = Modifier.size(38.dp)
                         )
-                    )
+                    }
                 }
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Spot-Hit",
+                    style = MaterialTheme.typography.headlineMedium.copy(
+                        color = Color.White,
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = 0.5.sp
+                    )
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Adivina el año exacto de los temazos que amas.",
+                    style = MaterialTheme.typography.bodyLarge.copy(color = Color(0xFFE4E7EE)),
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "Elige un modo, invita amigos y deja que la música hable.",
+                    style = MaterialTheme.typography.bodyMedium.copy(color = Color(0xFF9AA3B5)),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = 8.dp)
+                )
+            }
+
+            Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                PrimaryButton(
+                    text = "Crear nueva partida",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    onClick = { showCreateDialog = true }
+                )
+                PrimaryButton(
+                    text = "Unirse a la partida",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    onClick = { showJoinDialog = true }
+                )
+            }
+
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = "Partidas anteriores",
+                    style = MaterialTheme.typography.bodyMedium.copy(color = Color(0xFF9AA3B5)),
+                    modifier = Modifier.clickable { /* TODO: Navegar a historial */ }
+                )
+                Text(
+                    text = "Powered by Spotify",
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        color = Color(0xFF6AE2A2),
+                        fontWeight = FontWeight.SemiBold
+                    )
+                )
             }
         }
     }
