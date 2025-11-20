@@ -2,6 +2,7 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
+    id("com.google.devtools.ksp")
 }
 
 android {
@@ -52,6 +53,7 @@ android {
 dependencies {
     val retrofitVersion = "2.11.0"
     val okHttpVersion = "4.12.0"
+    val roomVersion = "2.6.1"
 
     val composeBom = platform("androidx.compose:compose-bom:2024.10.01")
     implementation(composeBom)
@@ -78,6 +80,10 @@ dependencies {
     implementation("com.squareup.retrofit2:retrofit:$retrofitVersion")
     implementation("com.squareup.retrofit2:converter-moshi:$retrofitVersion")
     implementation("com.squareup.moshi:moshi-kotlin:1.15.1")
+    implementation("androidx.room:room-runtime:$roomVersion")
+    implementation("androidx.room:room-ktx:$roomVersion")
+    ksp("androidx.room:room-compiler:$roomVersion")
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
@@ -86,6 +92,9 @@ dependencies {
     testImplementation("org.json:json:20240303")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
     testImplementation("com.squareup.okhttp3:mockwebserver:$okHttpVersion")
+    testImplementation("androidx.room:room-testing:$roomVersion")
+    testImplementation("androidx.test:core-ktx:1.6.1")
+    testImplementation("org.robolectric:robolectric:4.13")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
