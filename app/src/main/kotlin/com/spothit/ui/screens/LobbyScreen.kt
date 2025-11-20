@@ -6,10 +6,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -36,6 +34,7 @@ import com.spothit.core.model.Player
 import com.spothit.ui.components.InfoCard
 import com.spothit.ui.components.PrimaryButton
 import com.spothit.ui.components.SecondaryButton
+import com.spothit.ui.components.SpotHitScaffold
 import com.spothit.ui.theme.SpotHitCardDefaults
 
 @Composable
@@ -43,28 +42,29 @@ fun LobbyScreen(viewModel: GameViewModel, onStartGame: () -> Unit, onBack: () ->
     val uiState by viewModel.uiState.collectAsState()
     val session = uiState.session
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp)
-    ) {
-        SessionHeader(session)
-        PlayerList(
-            players = session?.players.orEmpty(),
-            host = session?.host,
-            modifier = Modifier.weight(1f)
-        )
-        PrimaryButton(
-            text = "Empezar partida",
-            enabled = session?.players?.isNotEmpty() == true,
-            onClick = {
-                viewModel.startRound()
-                onStartGame()
-            }
-        )
-        SecondaryButton(text = "Volver al inicio", onClick = onBack)
-    }
+    SpotHitScaffold(
+        topContent = {
+            SessionHeader(session)
+        },
+        bodyContent = {
+            PlayerList(
+                players = session?.players.orEmpty(),
+                host = session?.host,
+                modifier = Modifier.weight(1f)
+            )
+        },
+        actionsContent = {
+            PrimaryButton(
+                text = "Empezar partida",
+                enabled = session?.players?.isNotEmpty() == true,
+                onClick = {
+                    viewModel.startRound()
+                    onStartGame()
+                }
+            )
+            SecondaryButton(text = "Volver al inicio", onClick = onBack)
+        }
+    )
 }
 
 @Composable

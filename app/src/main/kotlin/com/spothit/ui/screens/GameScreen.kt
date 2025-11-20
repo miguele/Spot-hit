@@ -3,10 +3,8 @@ package com.spothit.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -37,6 +35,7 @@ import com.spothit.core.model.GameSession
 import com.spothit.core.model.TurnState
 import com.spothit.ui.components.PrimaryButton
 import com.spothit.ui.components.SecondaryButton
+import com.spothit.ui.components.SpotHitScaffold
 import com.spothit.ui.theme.SpotHitCardDefaults
 import com.spothit.ui.theme.SuccessGreen
 
@@ -51,56 +50,54 @@ fun GameScreen(viewModel: GameViewModel, onShowResults: () -> Unit, onBack: () -
     }
     var guess by remember { mutableStateOf("") }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(20.dp),
-        verticalArrangement = Arrangement.Top,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        SessionInfo(session)
-        Spacer(modifier = Modifier.height(16.dp))
-        CurrentSongCard(session)
-        Spacer(modifier = Modifier.height(12.dp))
-        if (session?.turnState == TurnState.GUESSING) {
-            YearInput(
-                value = guess,
-                onValueChange = { guess = it.filter { char -> char.isDigit() }.take(4) }
-            )
-            Spacer(modifier = Modifier.height(10.dp))
-            PrimaryButton(
-                text = "Enviar respuesta",
-                enabled = guess.length == 4,
-                onClick = {
-                    viewModel.submitGuess(session.host.id, guess.toInt())
-                }
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            SecondaryButton(text = "Volver al lobby", onClick = onBack)
-        } else {
-            RoundResult(
-                correctYear = session?.currentSong?.year,
-                roundPoints = roundPoints ?: currentScore,
-                message = session?.lastGuessResult.orEmpty()
-            )
+    SpotHitScaffold(
+        topContent = {
+            SessionInfo(session)
+        },
+        bodyContent = {
+            Spacer(modifier = Modifier.height(16.dp))
+            CurrentSongCard(session)
             Spacer(modifier = Modifier.height(12.dp))
-
-            val isLastRound = session?.currentRound == session?.totalRounds
-            PrimaryButton(
-                text = if (isLastRound) "Ver ranking" else "Siguiente ronda",
-                onClick = {
-                    if (isLastRound) {
-                        viewModel.completeGame()
-                        onShowResults()
-                    } else {
-                        viewModel.startRound()
+            if (session?.turnState == TurnState.GUESSING) {
+                YearInput(
+                    value = guess,
+                    onValueChange = { guess = it.filter { char -> char.isDigit() }.take(4) }
+                )
+            } else {
+                RoundResult(
+                    correctYear = session?.currentSong?.year,
+                    roundPoints = roundPoints ?: currentScore,
+                    message = session?.lastGuessResult.orEmpty()
+                )
+            }
+        },
+        actionsContent = {
+            if (session?.turnState == TurnState.GUESSING) {
+                PrimaryButton(
+                    text = "Enviar respuesta",
+                    enabled = guess.length == 4,
+                    onClick = {
+                        viewModel.submitGuess(session.host.id, guess.toInt())
                     }
-                }
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            SecondaryButton(text = "Ver resultados", onClick = onShowResults)
+                )
+                SecondaryButton(text = "Volver al lobby", onClick = onBack)
+            } else {
+                val isLastRound = session?.currentRound == session?.totalRounds
+                PrimaryButton(
+                    text = if (isLastRound) "Ver ranking" else "Siguiente ronda",
+                    onClick = {
+                        if (isLastRound) {
+                            viewModel.completeGame()
+                            onShowResults()
+                        } else {
+                            viewModel.startRound()
+                        }
+                    }
+                )
+                SecondaryButton(text = "Ver resultados", onClick = onShowResults)
+            }
         }
-    }
+    )
 }
 
 @Composable
