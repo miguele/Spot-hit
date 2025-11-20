@@ -23,8 +23,8 @@
                 <category android:name="android.intent.category.BROWSABLE" />
 
                 <data
-                    android:host="callback"
-                    android:scheme="spothit" />
+                    android:host="${redirectHostName}"
+                    android:scheme="${redirectSchemeName}" />
             </intent-filter>
         </activity>
     </application>

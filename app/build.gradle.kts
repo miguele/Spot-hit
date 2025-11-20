@@ -17,6 +17,11 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        manifestPlaceholders[
+            "redirectSchemeName" to "spothit",
+            "redirectHostName" to "callback"
+        ]
     }
 
     buildTypes {
