@@ -1,6 +1,7 @@
 package com.spothit.auth
 
 import android.content.Context
+import android.content.SharedPreferences
 import androidx.test.core.app.ApplicationProvider
 import com.spothit.core.auth.AuthTokens
 import kotlinx.coroutines.flow.take
@@ -17,10 +18,15 @@ import org.robolectric.RobolectricTestRunner
 class EncryptedTokenStorageTest {
 
     private val context: Context = ApplicationProvider.getApplicationContext()
+    private val prefsFactory = object : EncryptedPrefsFactory() {
+        override fun create(context: Context, preferenceName: String): SharedPreferences {
+            return context.getSharedPreferences(preferenceName, Context.MODE_PRIVATE)
+        }
+    }
 
     @Test
     fun `tokens are persisted and readable`() {
-        val storage = EncryptedTokenStorage(context)
+        val storage = EncryptedTokenStorage(context, prefsFactory)
         storage.clear()
         val expectedTokens = AuthTokens(
             accessToken = "access",
@@ -30,13 +36,13 @@ class EncryptedTokenStorageTest {
 
         storage.saveTokens(expectedTokens)
 
-        val newInstance = EncryptedTokenStorage(context)
+        val newInstance = EncryptedTokenStorage(context, prefsFactory)
         assertEquals(expectedTokens, newInstance.getTokens())
     }
 
     @Test
     fun `tokensFlow emits updates on save and clear`() = runTest {
-        val storage = EncryptedTokenStorage(context)
+        val storage = EncryptedTokenStorage(context, prefsFactory)
         storage.clear()
         val tokens = AuthTokens(
             accessToken = "live-access",
