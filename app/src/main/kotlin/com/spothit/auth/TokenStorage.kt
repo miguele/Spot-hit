@@ -48,14 +48,14 @@ class EncryptedTokenStorage(
             .putString(KEY_ACCESS_TOKEN, tokens.accessToken)
             .putString(KEY_REFRESH_TOKEN, tokens.refreshToken)
             .putLong(KEY_EXPIRES_AT, tokens.expiresAtMillis)
-            .apply()
+            .commit()
         cachedTokens = tokens
     }
 
     override fun getTokens(): AuthTokens? = cachedTokens
 
     override fun clear() {
-        sharedPreferences.edit().clear().apply()
+        sharedPreferences.edit().clear().commit()
         cachedTokens = null
     }
 
