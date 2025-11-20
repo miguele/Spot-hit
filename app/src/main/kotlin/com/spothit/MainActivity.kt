@@ -25,9 +25,9 @@ class MainActivity : ComponentActivity() {
         setContent { SpotHitTheme { SpotHitApp(appContainer, viewModel) } }
     }
 
-    override fun onNewIntent(intent: Intent?) {
+    override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        intent?.let { handleAuthRedirect(it) }
+        handleAuthRedirect(intent)
     }
 
     private fun handleAuthRedirect(intent: Intent) {
