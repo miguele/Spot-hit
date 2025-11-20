@@ -45,7 +45,8 @@ class GameViewModel(
     private val sessionProvider: SessionProvider,
     private val spotifyApi: SpotifyApi,
     private val tokenStorage: TokenStorage,
-    private val tokenProvider: InMemoryTokenProvider
+    private val tokenProvider: InMemoryTokenProvider,
+    private val pendingAuthStorage: PendingAuthStorage
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(GameUiState())
@@ -55,6 +56,7 @@ class GameViewModel(
     private var pendingCreation: CreationParams? = null
 
     init {
+        restorePendingAuthState()
         viewModelScope.launch { refreshSession() }
         viewModelScope.launch {
             tokenStorage.tokensFlow.collectLatest { tokens ->
@@ -103,9 +105,11 @@ class GameViewModel(
     }
 
     fun startAuthorization(hostName: String, totalRounds: Int) {
-        pendingCreation = CreationParams(hostName.trim(), totalRounds)
+        val creationParams = CreationParams(hostName.trim(), totalRounds)
+        pendingCreation = creationParams
         val request = spotifyAuthManager.createAuthorizationIntent(SPOTIFY_SCOPES)
         pendingPkce = request.pkceParameters
+        pendingAuthStorage.save(request.pkceParameters, creationParams)
         _uiState.value = _uiState.value.copy(
             authorizationRequest = request,
             authError = null,
@@ -125,21 +129,25 @@ class GameViewModel(
         val pkce = pendingPkce
         if (pkce == null) {
             _uiState.value = _uiState.value.copy(authError = "No hay solicitud de autenticación en curso")
+            pendingAuthStorage.clear()
             return
         }
 
         if (result.state != pkce.state) {
             _uiState.value = _uiState.value.copy(authError = "Estado de autenticación no coincide")
+            clearPendingAuthStorage()
             return
         }
 
         if (result.error != null) {
             _uiState.value = _uiState.value.copy(authError = "Autorización cancelada o fallida: ${result.error}")
+            clearPendingAuthStorage()
             return
         }
 
         val code = result.code ?: run {
             _uiState.value = _uiState.value.copy(authError = "Código de autorización ausente")
+            clearPendingAuthStorage()
             return
         }
 
@@ -184,6 +192,7 @@ class GameViewModel(
         }
         tokenProvider.update(tokens.accessToken)
         pendingPkce = null
+        pendingAuthStorage.clear()
         _uiState.value = _uiState.value.copy(isAuthorizing = false, hasValidAccessToken = true)
         loadPlaylists()
     }
@@ -238,6 +247,17 @@ class GameViewModel(
         _uiState.value = _uiState.value.copy(session = getSessionUseCase())
     }
 
+    private fun restorePendingAuthState() {
+        pendingPkce = pendingAuthStorage.getPkce()
+        pendingCreation = pendingAuthStorage.getCreationParams()
+    }
+
+    private fun clearPendingAuthStorage() {
+        pendingPkce = null
+        pendingCreation = null
+        pendingAuthStorage.clear()
+    }
+
     private suspend fun runAction(block: suspend () -> GameSession?) {
         try {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
@@ -271,7 +291,7 @@ data class GameUiState(
     val isFinished: Boolean get() = session?.state == SessionState.FINISHED
 }
 
-private data class CreationParams(val hostName: String, val totalRounds: Int)
+data class CreationParams(val hostName: String, val totalRounds: Int)
 
 private val SPOTIFY_SCOPES = listOf(
     "playlist-read-private",

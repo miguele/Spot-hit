@@ -17,6 +17,7 @@ import com.spothit.auth.EncryptedTokenStorage
 import com.spothit.auth.SessionProvider
 import com.spothit.auth.SpotifyAuthManager
 import com.spothit.auth.TokenStorage
+import com.spothit.PendingAuthStorage
 import com.spothit.network.BackendApi
 import com.spothit.network.InMemoryTokenProvider
 import com.spothit.network.NetworkConfig
@@ -47,6 +48,7 @@ class AppContainer(
     val tokenStorage: TokenStorage = EncryptedTokenStorage(context),
     val spotifyAuthManager: SpotifyAuthManager = SpotifyAuthManager(tokenStorage),
     val sessionProvider: SessionProvider = SessionProvider(spotifyAuthManager, tokenStorage),
+    val pendingAuthStorage: PendingAuthStorage = PendingAuthStorage(context),
     private val okHttpClient: OkHttpClient = OkHttpProvider.create(tokenProvider, BuildConfig.DEBUG)
 ) {
     private val converterFactory = RetrofitProvider.moshiConverterFactory(moshi)
@@ -87,7 +89,8 @@ class AppContainer(
                     sessionProvider = sessionProvider,
                     spotifyApi = spotifyApi,
                     tokenStorage = tokenStorage,
-                    tokenProvider = tokenProvider
+                    tokenProvider = tokenProvider,
+                    pendingAuthStorage = pendingAuthStorage
                 ) as T
             }
             throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
