@@ -3,12 +3,9 @@ package com.spothit.auth
 import android.content.Context
 import android.content.SharedPreferences
 import com.spothit.core.auth.AuthTokens
-import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.launch
 import kotlin.jvm.Volatile
 
 interface TokenStorage {
@@ -28,28 +25,19 @@ class EncryptedTokenStorage(
     private var cachedTokens: AuthTokens? = readTokens()
     private val tokensState = MutableStateFlow(cachedTokens)
 
-    override val tokensFlow: Flow<AuthTokens?> = callbackFlow {
-        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-            if (key == null || key in TOKEN_KEYS) {
-                val tokens = readTokens()
-                cachedTokens = tokens
-                tokensState.value = tokens
-            }
+    private val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        if (key == null || key in TOKEN_KEYS) {
+            val tokens = readTokens()
+            cachedTokens = tokens
+            tokensState.value = tokens
         }
+    }
 
-        val subscription = launch {
-            tokensState.collect { token ->
-                trySend(token)
-            }
-        }
-
+    init {
         sharedPreferences.registerOnSharedPreferenceChangeListener(listener)
+    }
 
-        awaitClose {
-            sharedPreferences.unregisterOnSharedPreferenceChangeListener(listener)
-            subscription.cancel()
-        }
-    }.distinctUntilChanged()
+    override val tokensFlow: Flow<AuthTokens?> = tokensState.distinctUntilChanged()
 
     override fun saveTokens(tokens: AuthTokens) {
         sharedPreferences.edit()
