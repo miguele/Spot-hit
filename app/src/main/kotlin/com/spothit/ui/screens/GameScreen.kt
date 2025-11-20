@@ -35,6 +35,7 @@ import com.spothit.core.model.GameSession
 import com.spothit.core.model.TurnState
 import com.spothit.ui.components.PrimaryButton
 import com.spothit.ui.components.SecondaryButton
+import com.spothit.ui.components.SpotHitCard
 import com.spothit.ui.components.SpotHitScaffold
 import com.spothit.ui.theme.SpotHitCardDefaults
 import com.spothit.ui.theme.SuccessGreen
@@ -133,14 +134,9 @@ private fun SessionInfo(session: GameSession?) {
 
 @Composable
 private fun CurrentSongCard(session: GameSession?) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = SpotHitCardDefaults.colors(),
-        shape = SpotHitCardDefaults.shape,
-        elevation = SpotHitCardDefaults.elevated()
-    ) {
+    SpotHitCard(modifier = Modifier.fillMaxWidth()) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -203,48 +199,41 @@ private fun YearInput(value: String, onValueChange: (String) -> Unit) {
 @Composable
 private fun RoundResult(correctYear: Int?, roundPoints: Int, message: String) {
     val description = message.ifBlank { "Consulta el año y avanza a la siguiente ronda." }
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = SpotHitCardDefaults.colors(),
-        shape = SpotHitCardDefaults.shape,
-        elevation = SpotHitCardDefaults.elevated()
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = "Resultado de la ronda",
-                style = MaterialTheme.typography.titleMedium
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = description,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                Column {
-                    Text(
-                        text = "Año correcto",
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = correctYear?.toString() ?: "--",
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        text = "Puntos obtenidos",
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = "$roundPoints pts",
-                        style = MaterialTheme.typography.titleLarge.copy(color = SuccessGreen)
-                    )
-                }
+    SpotHitCard(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "Resultado de la ronda",
+            style = MaterialTheme.typography.titleMedium
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = description,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+            Column {
+                Text(
+                    text = "Año correcto",
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = correctYear?.toString() ?: "--",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = "Puntos obtenidos",
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "$roundPoints pts",
+                    style = MaterialTheme.typography.titleLarge.copy(color = SuccessGreen)
+                )
             }
         }
     }
