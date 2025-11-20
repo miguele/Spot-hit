@@ -2,16 +2,23 @@ package com.spothit.ui.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import com.spothit.GameViewModel
 import com.spothit.ui.screens.GameScreen
 import com.spothit.ui.screens.HomeScreen
 import com.spothit.ui.screens.LobbyScreen
 import com.spothit.ui.screens.ResultsScreen
+import com.spothit.ui.screens.SetupMode
+import com.spothit.ui.screens.SetupScreen
 
 sealed class SpotHitDestination(val route: String) {
     data object Home : SpotHitDestination("home")
+    data object Setup : SpotHitDestination("setup/{mode}") {
+        fun createRoute(mode: SetupMode) = "setup/${mode.name.lowercase()}"
+    }
     data object Lobby : SpotHitDestination("lobby")
     data object Game : SpotHitDestination("game")
     data object Results : SpotHitDestination("results")
@@ -25,8 +32,26 @@ fun SpotHitNavGraph(
     NavHost(navController = navController, startDestination = SpotHitDestination.Home.route) {
         composable(SpotHitDestination.Home.route) {
             HomeScreen(
+                onNavigateToSetup = { mode ->
+                    navController.navigate(SpotHitDestination.Setup.createRoute(mode))
+                }
+            )
+        }
+        composable(
+            route = SpotHitDestination.Setup.route,
+            arguments = listOf(navArgument("mode") { type = NavType.StringType; defaultValue = "dj" })
+        ) { backStackEntry ->
+            val modeArg = backStackEntry.arguments?.getString("mode")?.lowercase()
+            val initialMode = SetupMode.fromRoute(modeArg)
+
+            SetupScreen(
                 viewModel = viewModel,
-                onNavigateToLobby = { navController.navigate(SpotHitDestination.Lobby.route) }
+                initialMode = initialMode,
+                onBack = { navController.popBackStack() },
+                onNavigateToLobby = {
+                    navController.popBackStack(SpotHitDestination.Home.route, inclusive = false)
+                    navController.navigate(SpotHitDestination.Lobby.route)
+                }
             )
         }
         composable(SpotHitDestination.Lobby.route) {
