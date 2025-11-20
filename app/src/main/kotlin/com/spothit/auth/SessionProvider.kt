@@ -1,11 +1,12 @@
 package com.spothit.auth
 
+import com.spothit.core.auth.AuthSessionManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.Request
 
 class SessionProvider(
-    private val authManager: SpotifyAuthManager,
+    private val authManager: AuthSessionManager,
     private val tokenStorage: TokenStorage
 ) {
     suspend fun getAccessToken(): String? = authManager.ensureValidAccessToken()

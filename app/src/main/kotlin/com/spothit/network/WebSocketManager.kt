@@ -1,6 +1,8 @@
 package com.spothit.network
 
 import androidx.annotation.VisibleForTesting
+import com.spothit.core.network.LobbySocketClient
+import com.spothit.core.network.LobbySocketEvent
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 import com.squareup.moshi.Moshi
@@ -26,23 +28,23 @@ class WebSocketManager(
     private val tokenProvider: TokenProvider,
     moshi: Moshi = Moshi.Builder().add(KotlinJsonAdapterFactory()).build(),
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-) {
+) : LobbySocketClient {
     private val messageAdapter = moshi.adapter(RawSocketMessage::class.java)
     private val _events = MutableSharedFlow<LobbySocketEvent>(extraBufferCapacity = 32)
-    val events: SharedFlow<LobbySocketEvent> = _events.asSharedFlow()
+    override val events: SharedFlow<LobbySocketEvent> = _events.asSharedFlow()
 
     private val reconnectionDelaysMs = listOf(0L, 1_000L, 2_000L, 4_000L, 8_000L, 16_000L, 30_000L)
     private var reconnectAttempt = 0
     private var activeLobbyId: String? = null
     private var webSocket: WebSocket? = null
 
-    fun connect(lobbyId: String) {
+    override fun connect(lobbyId: String) {
         activeLobbyId = lobbyId
         reconnectAttempt = 0
         openSocket(lobbyId)
     }
 
-    fun disconnect() {
+    override fun disconnect() {
         activeLobbyId = null
         webSocket?.close(1000, "Client disconnect")
         webSocket = null
@@ -116,14 +118,6 @@ class WebSocketManager(
             else -> LobbySocketEvent.Raw(raw.type.orEmpty(), raw.payload)
         }
     }
-}
-
-sealed class LobbySocketEvent {
-    data class PlayerJoined(val lobbyId: String, val playerName: String) : LobbySocketEvent()
-    data class PlayerLeft(val lobbyId: String, val playerName: String) : LobbySocketEvent()
-    data class StateChanged(val lobbyId: String, val state: String, val playlistName: String?) : LobbySocketEvent()
-    data class Message(val lobbyId: String, val from: String, val content: String) : LobbySocketEvent()
-    data class Raw(val type: String, val payload: String?) : LobbySocketEvent()
 }
 
 @JsonClass(generateAdapter = true)
