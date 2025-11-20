@@ -49,6 +49,9 @@ fun SpotHitNavGraph(
                 onPlayAgain = {
                     viewModel.reset()
                     navController.popBackStack(SpotHitDestination.Home.route, inclusive = false)
+                },
+                onBackToHome = {
+                    navController.popBackStack(SpotHitDestination.Home.route, inclusive = false)
                 }
             )
         }
