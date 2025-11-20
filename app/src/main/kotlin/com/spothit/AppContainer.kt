@@ -21,14 +21,14 @@ class AppContainer(
             if (modelClass.isAssignableFrom(GameViewModel::class.java)) {
                 @Suppress("UNCHECKED_CAST")
                 return GameViewModel(
-                    createGame = CreateGameUseCase(repository),
-                    joinGame = JoinGameUseCase(repository),
-                    startRound = StartRoundUseCase(repository),
-                    submitGuess = SubmitGuessUseCase(repository),
-                    finishGame = FinishGameUseCase(repository),
-                    resetGame = ResetGameUseCase(repository),
-                    updatePlaylist = UpdatePlaylistUseCase(repository),
-                    getSession = GetSessionUseCase(repository)
+                    createGameUseCase = CreateGameUseCase(repository),
+                    joinGameUseCase = JoinGameUseCase(repository),
+                    startRoundUseCase = StartRoundUseCase(repository),
+                    submitGuessUseCase = SubmitGuessUseCase(repository),
+                    finishGameUseCase = FinishGameUseCase(repository),
+                    resetGameUseCase = ResetGameUseCase(repository),
+                    updatePlaylistUseCase = UpdatePlaylistUseCase(repository),
+                    getSessionUseCase = GetSessionUseCase(repository)
                 ) as T
             }
             throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")

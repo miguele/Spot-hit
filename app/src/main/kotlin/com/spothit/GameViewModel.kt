@@ -21,14 +21,14 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class GameViewModel(
-    private val createGame: CreateGameUseCase,
-    private val joinGame: JoinGameUseCase,
-    private val startRound: StartRoundUseCase,
-    private val submitGuess: SubmitGuessUseCase,
-    private val finishGame: FinishGameUseCase,
-    private val resetGame: ResetGameUseCase,
-    private val updatePlaylist: UpdatePlaylistUseCase,
-    private val getSession: GetSessionUseCase
+    private val createGameUseCase: CreateGameUseCase,
+    private val joinGameUseCase: JoinGameUseCase,
+    private val startRoundUseCase: StartRoundUseCase,
+    private val submitGuessUseCase: SubmitGuessUseCase,
+    private val finishGameUseCase: FinishGameUseCase,
+    private val resetGameUseCase: ResetGameUseCase,
+    private val updatePlaylistUseCase: UpdatePlaylistUseCase,
+    private val getSessionUseCase: GetSessionUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(GameUiState())
@@ -42,7 +42,7 @@ class GameViewModel(
         viewModelScope.launch {
             runAction {
                 val host = Player(id = hostName.lowercase(), name = hostName)
-                createGame(host, totalRounds, mode)
+                createGameUseCase(host, totalRounds, mode)
             }
         }
     }
@@ -51,33 +51,33 @@ class GameViewModel(
         viewModelScope.launch {
             runAction {
                 val player = Player(id = playerName.lowercase(), name = playerName)
-                joinGame(player)
+                joinGameUseCase(player)
             }
         }
     }
 
     fun selectPlaylist(playlist: Playlist) {
-        viewModelScope.launch { runAction { updatePlaylist(playlist) } }
+        viewModelScope.launch { runAction { updatePlaylistUseCase(playlist) } }
     }
 
     fun startRound() {
-        viewModelScope.launch { runAction { startRound() } }
+        viewModelScope.launch { runAction { startRoundUseCase() } }
     }
 
     fun submitGuess(playerId: String, yearGuess: Int) {
-        viewModelScope.launch { runAction { submitGuess(playerId, yearGuess) } }
+        viewModelScope.launch { runAction { submitGuessUseCase(playerId, yearGuess) } }
     }
 
     fun completeGame() {
-        viewModelScope.launch { runAction { finishGame() } }
+        viewModelScope.launch { runAction { finishGameUseCase() } }
     }
 
     fun reset() {
-        viewModelScope.launch { runAction { resetGame() } }
+        viewModelScope.launch { runAction { resetGameUseCase() } }
     }
 
     private suspend fun refreshSession() {
-        _uiState.value = _uiState.value.copy(session = getSession())
+        _uiState.value = _uiState.value.copy(session = getSessionUseCase())
     }
 
     private suspend fun runAction(block: suspend () -> GameSession?) {
