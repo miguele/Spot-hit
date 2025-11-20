@@ -136,8 +136,10 @@ class SpotifyAuthManager(
         val json = org.json.JSONObject(rawBody)
         val accessToken = json.getString("access_token")
         val expiresIn = json.optLong("expires_in", 3600L)
-        val refreshToken = json.optString("refresh_token", fallbackRefreshToken)
-            ?: throw IllegalStateException("Missing refresh token")
+        val refreshToken = json
+            .optString("refresh_token", fallbackRefreshToken ?: "")
+            .ifBlank { fallbackRefreshToken.orEmpty() }
+            .ifBlank { throw IllegalStateException("Missing refresh token") }
         val expiresAt = clock() + expiresIn * 1000L
         return AuthTokens(accessToken = accessToken, refreshToken = refreshToken, expiresAtMillis = expiresAt)
     }

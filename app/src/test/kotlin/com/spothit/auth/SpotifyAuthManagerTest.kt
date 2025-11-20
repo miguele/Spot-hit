@@ -1,5 +1,7 @@
 package com.spothit.auth
 
+import com.spothit.core.auth.AuthTokens
+import com.spothit.core.auth.PkceParameters
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -15,7 +17,7 @@ class SpotifyAuthManagerTest {
         val verifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
         val expectedChallenge = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM"
 
-        val generatedChallenge = PkceParameters.generateCodeChallenge(verifier)
+        val generatedChallenge = SpotifyAuthManager.generateCodeChallenge(verifier)
 
         assertEquals(expectedChallenge, generatedChallenge)
     }
@@ -26,7 +28,7 @@ class SpotifyAuthManagerTest {
 
         assertTrue(params.codeVerifier.length in 43..128)
         assertEquals(
-            PkceParameters.generateCodeChallenge(params.codeVerifier),
+            SpotifyAuthManager.generateCodeChallenge(params.codeVerifier),
             params.codeChallenge
         )
     }
@@ -61,18 +63,18 @@ class SpotifyAuthManagerTest {
     }
 
     private class InMemoryTokenStorage : TokenStorage {
-        private var tokens: SpotifyTokens? = null
-        private val tokensState = MutableStateFlow<SpotifyTokens?>(null)
+        private var tokens: AuthTokens? = null
+        private val tokensState = MutableStateFlow<AuthTokens?>(null)
 
-        override val tokensFlow: Flow<SpotifyTokens?>
+        override val tokensFlow: Flow<AuthTokens?>
             get() = tokensState
 
-        override fun saveTokens(tokens: SpotifyTokens) {
+        override fun saveTokens(tokens: AuthTokens) {
             this.tokens = tokens
             tokensState.value = tokens
         }
 
-        override fun getTokens(): SpotifyTokens? = tokensState.value
+        override fun getTokens(): AuthTokens? = tokensState.value
 
         override fun clear() {
             tokens = null
