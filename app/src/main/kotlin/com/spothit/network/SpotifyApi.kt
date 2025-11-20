@@ -36,7 +36,7 @@ data class SpotifyPlaylistPage(
 data class SpotifyPlaylist(
     val id: String,
     val name: String,
-    val images: List<SpotifyImage> = emptyList(),
+    val images: List<SpotifyImage>? = emptyList(),
     val tracks: SpotifyTrackRef?
 )
 

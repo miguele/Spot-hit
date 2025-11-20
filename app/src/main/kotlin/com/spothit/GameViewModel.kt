@@ -218,7 +218,7 @@ class GameViewModel(
                     Playlist(
                         id = apiPlaylist.id,
                         name = apiPlaylist.name,
-                        coverUrl = apiPlaylist.images.firstOrNull()?.url,
+                        coverUrl = apiPlaylist.images?.firstOrNull()?.url,
                         trackCount = apiPlaylist.tracks?.total ?: 0
                     )
                 }
