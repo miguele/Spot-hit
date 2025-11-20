@@ -91,7 +91,7 @@ fun HomeScreen(viewModel: GameViewModel, onNavigateToLobby: () -> Unit) {
         )
         Spacer(modifier = Modifier.height(8.dp))
         PrimaryButton(
-            text = "Unirme",
+            text = "Unirse y entrar al lobby",
             enabled = friendName.isNotBlank(),
             onClick = {
                 viewModel.joinSession(friendName.trim())
