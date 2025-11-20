@@ -2,6 +2,7 @@ package com.spothit.auth
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import com.spothit.core.auth.AuthTokens
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
@@ -21,7 +22,7 @@ class EncryptedTokenStorageTest {
     fun `tokens are persisted and readable`() {
         val storage = EncryptedTokenStorage(context)
         storage.clear()
-        val expectedTokens = SpotifyTokens(
+        val expectedTokens = AuthTokens(
             accessToken = "access",
             refreshToken = "refresh",
             expiresAtMillis = 1234L
@@ -37,13 +38,13 @@ class EncryptedTokenStorageTest {
     fun `tokensFlow emits updates on save and clear`() = runTest {
         val storage = EncryptedTokenStorage(context)
         storage.clear()
-        val tokens = SpotifyTokens(
+        val tokens = AuthTokens(
             accessToken = "live-access",
             refreshToken = "live-refresh",
             expiresAtMillis = 42L
         )
 
-        val emissions = mutableListOf<SpotifyTokens?>()
+        val emissions = mutableListOf<AuthTokens?>()
         val job = launch { storage.tokensFlow.take(3).toList(emissions) }
 
         storage.saveTokens(tokens)
