@@ -1,5 +1,6 @@
 package com.spothit.auth
 
+import com.spothit.auth.SpotifyAuthManager.Companion.create
 import com.spothit.core.auth.AuthTokens
 import com.spothit.core.auth.PkceParameters
 import org.junit.Assert.assertEquals
