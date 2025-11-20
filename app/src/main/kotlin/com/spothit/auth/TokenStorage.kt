@@ -37,7 +37,7 @@ class EncryptedTokenStorage(
         sharedPreferences.registerOnSharedPreferenceChangeListener(listener)
     }
 
-    override val tokensFlow: Flow<AuthTokens?> = tokensState.distinctUntilChanged()
+    override val tokensFlow: Flow<AuthTokens?> = tokensState
 
     override fun saveTokens(tokens: AuthTokens) {
         sharedPreferences.edit()

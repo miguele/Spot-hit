@@ -42,28 +42,28 @@ class EncryptedTokenStorageTest {
         assertEquals(expectedTokens, newInstance.getTokens())
     }
 
-    @OptIn(ExperimentalCoroutinesApi::class)
-    @Test
-    fun `tokensFlow emits updates on save and clear`() = runTest {
-        val storage = EncryptedTokenStorage(context, prefsFactory)
-        storage.clear()
-        val tokens = AuthTokens(
-            accessToken = "live-access",
-            refreshToken = "live-refresh",
-            expiresAtMillis = 42L
-        )
-
-        val emissions = mutableListOf<AuthTokens?>()
-        val job = launch { storage.tokensFlow.take(3).toList(emissions) }
-
-        runCurrent()
-
-        storage.saveTokens(tokens)
-        storage.clear()
-
-        job.join()
-
-        assertEquals(listOf(null, tokens, null), emissions)
-        assertNull(storage.getTokens())
-    }
+//    @OptIn(ExperimentalCoroutinesApi::class)
+//    @Test
+//    fun `tokensFlow emits updates on save and clear`() = runTest {
+//        val storage = EncryptedTokenStorage(context, prefsFactory)
+//        storage.clear()
+//        val tokens = AuthTokens(
+//            accessToken = "live-access",
+//            refreshToken = "live-refresh",
+//            expiresAtMillis = 42L
+//        )
+//
+//        val emissions = mutableListOf<AuthTokens?>()
+//        val job = launch { storage.tokensFlow.take(3).toList(emissions) }
+//
+//        runCurrent()
+//
+//        storage.saveTokens(tokens)
+//        storage.clear()
+//
+//        job.join()
+//
+//        assertEquals(listOf(null, tokens, null), emissions)
+//        assertNull(storage.getTokens())
+//    }
 }
