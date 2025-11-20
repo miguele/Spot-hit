@@ -18,10 +18,8 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        manifestPlaceholders[
-            "redirectSchemeName" to "spothit",
-            "redirectHostName" to "callback"
-        ]
+        manifestPlaceholders["redirectSchemeName"] = "spothit"
+        manifestPlaceholders["redirectHostName"] = "callback"
     }
 
     buildTypes {
