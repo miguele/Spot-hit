@@ -5,9 +5,8 @@ import android.content.SharedPreferences
 import com.spothit.core.auth.AuthTokens
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.launch
 import kotlin.jvm.Volatile
 
@@ -38,7 +37,7 @@ class EncryptedTokenStorage(
         }
 
         val subscription = launch {
-            tokensState.distinctUntilChanged().collect { token ->
+            tokensState.collect { token ->
                 trySend(token)
             }
         }
