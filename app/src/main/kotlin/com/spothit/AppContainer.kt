@@ -13,13 +13,16 @@ import com.spothit.core.usecase.ResetGameUseCase
 import com.spothit.core.usecase.StartRoundUseCase
 import com.spothit.core.usecase.SubmitGuessUseCase
 import com.spothit.core.usecase.UpdatePlaylistUseCase
+import com.spothit.auth.EncryptedTokenStorage
+import com.spothit.auth.SessionProvider
+import com.spothit.auth.SpotifyAuthManager
+import com.spothit.auth.TokenStorage
 import com.spothit.network.BackendApi
 import com.spothit.network.InMemoryTokenProvider
 import com.spothit.network.NetworkConfig
 import com.spothit.network.OkHttpProvider
 import com.spothit.network.RetrofitProvider
 import com.spothit.network.SpotifyApi
-import com.spothit.network.TokenProvider
 import com.spothit.network.WebSocketManager
 import com.spotify.sdk.android.auth.BuildConfig
 import com.squareup.moshi.Moshi
@@ -37,9 +40,13 @@ import okhttp3.OkHttpClient
  * the UI to keep boundaries clear.
  */
 class AppContainer(
+    context: android.content.Context,
     private val repository: GameRepository = InMemoryGameRepository(),
-    val tokenProvider: TokenProvider = InMemoryTokenProvider(),
+    val tokenProvider: InMemoryTokenProvider = InMemoryTokenProvider(),
     moshi: Moshi = Moshi.Builder().add(KotlinJsonAdapterFactory()).build(),
+    val tokenStorage: TokenStorage = EncryptedTokenStorage(context),
+    val spotifyAuthManager: SpotifyAuthManager = SpotifyAuthManager(tokenStorage),
+    val sessionProvider: SessionProvider = SessionProvider(spotifyAuthManager, tokenStorage),
     private val okHttpClient: OkHttpClient = OkHttpProvider.create(tokenProvider, BuildConfig.DEBUG)
 ) {
     private val converterFactory = RetrofitProvider.moshiConverterFactory(moshi)
@@ -75,7 +82,12 @@ class AppContainer(
                     finishGameUseCase = FinishGameUseCase(repository),
                     resetGameUseCase = ResetGameUseCase(repository),
                     updatePlaylistUseCase = UpdatePlaylistUseCase(repository),
-                    getSessionUseCase = GetSessionUseCase(repository)
+                    getSessionUseCase = GetSessionUseCase(repository),
+                    spotifyAuthManager = spotifyAuthManager,
+                    sessionProvider = sessionProvider,
+                    spotifyApi = spotifyApi,
+                    tokenStorage = tokenStorage,
+                    tokenProvider = tokenProvider
                 ) as T
             }
             throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
