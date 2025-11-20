@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -32,6 +31,7 @@ import com.spothit.GameViewModel
 import com.spothit.core.model.Player
 import com.spothit.ui.components.PrimaryButton
 import com.spothit.ui.components.SecondaryButton
+import com.spothit.ui.components.SpotHitScaffold
 import com.spothit.ui.theme.GreenPrimary
 import com.spothit.ui.theme.SpotHitCardDefaults
 
@@ -43,38 +43,39 @@ fun ResultsScreen(viewModel: GameViewModel, onPlayAgain: () -> Unit, onBackToHom
     val playersById = session?.players?.associateBy { it.id } ?: emptyMap()
     val currentUserId = session?.host?.id
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(20.dp),
-        verticalArrangement = Arrangement.Top
-    ) {
-        Text(
-            "Ranking final",
-            style = MaterialTheme.typography.headlineSmall
-        )
-        Text(
-            text = "Así quedó la sala tras ${session?.totalRounds ?: 0} rondas",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
-        )
-        LazyColumn(modifier = Modifier.weight(1f)) {
-            itemsIndexed(scores) { index, score ->
-                val player = playersById[score.key]
-                ScoreRow(
-                    position = index + 1,
-                    player = player,
-                    points = score.value,
-                    isCurrentUser = currentUserId == score.key
+    SpotHitScaffold(
+        topContent = {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    "Ranking final",
+                    style = MaterialTheme.typography.headlineSmall
+                )
+                Text(
+                    text = "Así quedó la sala tras ${session?.totalRounds ?: 0} rondas",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+        },
+        bodyContent = {
+            LazyColumn(modifier = Modifier.weight(1f)) {
+                itemsIndexed(scores) { index, score ->
+                    val player = playersById[score.key]
+                    ScoreRow(
+                        position = index + 1,
+                        player = player,
+                        points = score.value,
+                        isCurrentUser = currentUserId == score.key
+                    )
+                }
+            }
+        },
+        actionsContent = {
+            PrimaryButton(text = "Jugar otra vez", onClick = onPlayAgain)
+            Spacer(modifier = Modifier.height(8.dp))
+            SecondaryButton(text = "Volver al inicio", onClick = onBackToHome)
         }
-        Spacer(modifier = Modifier.height(16.dp))
-        PrimaryButton(text = "Jugar otra vez", onClick = onPlayAgain)
-        Spacer(modifier = Modifier.height(8.dp))
-        SecondaryButton(text = "Volver al inicio", onClick = onBackToHome)
-    }
+    )
 }
 
 @Composable
