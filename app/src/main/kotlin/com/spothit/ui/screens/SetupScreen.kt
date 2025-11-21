@@ -26,15 +26,17 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.HeadsetMic
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.QrCodeScanner
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -43,7 +45,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -64,12 +65,16 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
+import coil.compose.AsyncImagePainter
+import coil.compose.rememberAsyncImagePainter
 import com.spothit.GameUiState
 import com.spothit.GameViewModel
 import com.spothit.core.model.Playlist
@@ -273,88 +278,90 @@ fun SetupScreen(
         modifier = Modifier.fillMaxSize(),
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            TopBar(onBack = onBack)
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = "Elige cómo quieres jugar",
-                style = MaterialTheme.typography.headlineSmall.copy(
-                    color = Color.White,
-                    fontWeight = FontWeight.ExtraBold
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                TopBar(onBack = onBack)
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "Elige cómo quieres jugar",
+                    style = MaterialTheme.typography.headlineSmall.copy(
+                        color = Color.White,
+                        fontWeight = FontWeight.ExtraBold
+                    )
                 )
-            )
-            Text(
-                text = "Configura tu sala como DJ o ingresa como invitado para unirte a tus amigos.",
-                style = MaterialTheme.typography.bodyMedium.copy(color = Color(0xFF9AA3B5)),
-                modifier = Modifier.padding(top = 6.dp, bottom = 18.dp)
-            )
-
-            ModeSelector(selectedMode = selectedMode, onModeSelected = { selectedMode = it })
-            Spacer(modifier = Modifier.height(18.dp))
-
-            when (selectedMode) {
-                SetupMode.DJ -> HostCard(
-                    hostName = hostName,
-                    rounds = rounds,
-                    isLoading = uiState.isLoading || uiState.isAuthorizing,
-                    avatarUrl = hostAvatarUrl,
-                    isAvatarLoading = hostAvatarLoading,
-                    avatarError = hostAvatarError,
-                    onAvatarSelected = { hostAvatarUrl = it },
-                    onPickAvatarFromGallery = { launchGallery(AvatarOwner.HOST) },
-                    onCaptureAvatar = { launchCamera(AvatarOwner.HOST) },
-                    onHostNameChange = { hostName = it },
-                    onRoundsChange = { value -> rounds = value.filter { char -> char.isDigit() }.take(2) },
-                    onContinue = {
-                        val totalRounds = rounds.toIntOrNull()?.coerceIn(1, 10) ?: 3
-                        viewModel.startAuthorization(hostName.trim(), totalRounds, hostAvatarUrl)
-                        hasNavigated = false
-                    }
+                Text(
+                    text = "Configura tu sala como DJ o ingresa como invitado para unirte a tus amigos.",
+                    style = MaterialTheme.typography.bodyMedium.copy(color = Color(0xFF9AA3B5)),
+                    modifier = Modifier.padding(top = 6.dp, bottom = 18.dp)
                 )
 
-                SetupMode.GUEST -> GuestCard(
-                    guestName = guestName,
-                    gameCode = lobbyCode,
-                    isLoading = uiState.isLoading,
-                    avatarUrl = guestAvatarUrl,
-                    isAvatarLoading = guestAvatarLoading,
-                    avatarError = guestAvatarError,
-                    onAvatarSelected = { guestAvatarUrl = it },
-                    onPickAvatarFromGallery = { launchGallery(AvatarOwner.GUEST) },
-                    onCaptureAvatar = { launchCamera(AvatarOwner.GUEST) },
-                    onGuestNameChange = { guestName = it },
-                    onGameCodeChange = { lobbyCode = it },
-                    onScanQr = {
-                        scope.launch {
-                            snackbarHostState.showSnackbar(
-                                message = "Escaneo QR disponible próximamente"
+                ModeSelector(selectedMode = selectedMode, onModeSelected = { selectedMode = it })
+                Spacer(modifier = Modifier.height(18.dp))
+
+                when (selectedMode) {
+                    SetupMode.DJ -> HostCard(
+                        hostName = hostName,
+                        rounds = rounds,
+                        isLoading = uiState.isLoading || uiState.isAuthorizing,
+                        avatarUrl = hostAvatarUrl,
+                        isAvatarLoading = hostAvatarLoading,
+                        avatarError = hostAvatarError,
+                        onAvatarSelected = { hostAvatarUrl = it },
+                        onPickAvatarFromGallery = { launchGallery(AvatarOwner.HOST) },
+                        onCaptureAvatar = { launchCamera(AvatarOwner.HOST) },
+                        onHostNameChange = { hostName = it },
+                        onRoundsChange = { value -> rounds = value.filter { char -> char.isDigit() }.take(2) },
+                        onContinue = {
+                            val totalRounds = rounds.toIntOrNull()?.coerceIn(1, 10) ?: 3
+                            viewModel.startAuthorization(hostName.trim(), totalRounds, hostAvatarUrl)
+                            hasNavigated = false
+                        }
+                    )
+
+                    SetupMode.GUEST -> GuestCard(
+                        guestName = guestName,
+                        gameCode = lobbyCode,
+                        isLoading = uiState.isLoading,
+                        avatarUrl = guestAvatarUrl,
+                        isAvatarLoading = guestAvatarLoading,
+                        avatarError = guestAvatarError,
+                        onAvatarSelected = { guestAvatarUrl = it },
+                        onPickAvatarFromGallery = { launchGallery(AvatarOwner.GUEST) },
+                        onCaptureAvatar = { launchCamera(AvatarOwner.GUEST) },
+                        onGuestNameChange = { guestName = it },
+                        onGameCodeChange = { lobbyCode = it },
+                        onScanQr = {
+                            scope.launch {
+                                snackbarHostState.showSnackbar(
+                                    message = "Escaneo QR disponible próximamente"
+                                )
+                            }
+                        },
+                        onJoin = {
+                            viewModel.joinSession(
+                                playerName = guestName.trim(),
+                                lobbyCode = lobbyCode.trim().uppercase(),
+                                avatarUrl = guestAvatarUrl
                             )
+                            hasNavigated = false
+                        }
+                    )
+                }
+            }
+
+            if (uiState.showPlaylistSelection) {
+                PlaylistSelectionScreen(
+                    uiState = uiState,
+                    onPlaylistSelected = { viewModel.selectPlaylistForPreview(it) },
+                    onConfirm = {
+                        uiState.selectedPlaylist?.let { playlist ->
+                            viewModel.selectPlaylistAndCreate(playlist)
                         }
                     },
-                    onJoin = {
-                        viewModel.joinSession(
-                            playerName = guestName.trim(),
-                            lobbyCode = lobbyCode.trim().uppercase(),
-                            avatarUrl = guestAvatarUrl
-                        )
-                        hasNavigated = false
-                    }
+                    onRetry = { viewModel.retryPlaylistLoad() }
                 )
             }
         }
-    }
-
-    if (uiState.showPlaylistSelection) {
-        PlaylistSelectionDialog(
-            uiState = uiState,
-            onPlaylistSelected = { viewModel.selectPlaylistForPreview(it) },
-            onConfirm = {
-                uiState.selectedPlaylist?.let { playlist ->
-                    viewModel.selectPlaylistAndCreate(playlist)
-                }
-            },
-            onRetry = { viewModel.retryPlaylistLoad() }
-        )
     }
 }
 
@@ -675,80 +682,195 @@ private fun GuestCard(
 }
 
 @Composable
-private fun PlaylistSelectionDialog(
+private fun PlaylistSelectionScreen(
     uiState: GameUiState,
     onPlaylistSelected: (Playlist) -> Unit,
     onConfirm: () -> Unit,
     onRetry: () -> Unit
 ) {
-    AlertDialog(
-        onDismissRequest = {},
-        title = { Text("Selecciona tu playlist") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                if (uiState.isLoadingPlaylists) {
-                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xE60B1024))
+            .padding(horizontal = 12.dp, vertical = 16.dp)
+    ) {
+        Card(
+            modifier = Modifier.fillMaxSize(),
+            shape = RoundedCornerShape(22.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF0F1728)),
+            elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 20.dp, vertical = 18.dp),
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = "Selecciona tu playlist",
+                                style = MaterialTheme.typography.headlineSmall.copy(
+                                    color = Color.White,
+                                    fontWeight = FontWeight.ExtraBold
+                                )
+                            )
+                            Text(
+                                text = "Elige la lista para tu partida antes de abrir el lobby.",
+                                style = MaterialTheme.typography.bodyMedium.copy(color = Color(0xFF9AA3B5))
+                            )
+                        }
+                        TextButton(onClick = onRetry, enabled = !uiState.isLoadingPlaylists) {
+                            Icon(imageVector = Icons.Default.Refresh, contentDescription = null)
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(text = "Actualizar")
+                        }
                     }
-                } else {
-                    if (uiState.playlists.isEmpty()) {
-                        Text("No encontramos playlists en tu cuenta.")
-                    } else {
-                        androidx.compose.foundation.lazy.LazyColumn(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(260.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                            contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 4.dp)
-                        ) {
-                            items(uiState.playlists) { playlist ->
-                                PlaylistRow(
-                                    playlist = playlist,
-                                    selected = uiState.selectedPlaylist?.id == playlist.id,
-                                    onClick = { onPlaylistSelected(playlist) }
+
+                    when {
+                        uiState.isLoadingPlaylists -> {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator()
+                            }
+                        }
+
+                        uiState.playlists.isEmpty() -> {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "No encontramos playlists en tu cuenta.",
+                                    color = Color.White
                                 )
                             }
+                        }
+
+                        else -> {
+                            LazyColumn(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                items(uiState.playlists) { playlist ->
+                                    PlaylistCard(
+                                        playlist = playlist,
+                                        selected = uiState.selectedPlaylist?.id == playlist.id,
+                                        onClick = { onPlaylistSelected(playlist) }
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    uiState.playlistError?.let {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color(0x33FF6B6B), RoundedCornerShape(12.dp))
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(text = it, color = MaterialTheme.colorScheme.error, modifier = Modifier.weight(1f))
+                            TextButton(onClick = onRetry) { Text("Reintentar") }
                         }
                     }
                 }
 
-                uiState.playlistError?.let {
-                    Text(text = it, color = MaterialTheme.colorScheme.error)
-                    TextButton(onClick = onRetry) { Text("Reintentar") }
-                }
+                PrimaryButton(
+                    text = "Crear Partida y Abrir Lobby",
+                    enabled = uiState.selectedPlaylist != null && uiState.hasValidAccessToken && !uiState.isLoadingPlaylists,
+                    onClick = onConfirm,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
-        },
-        confirmButton = {
-            TextButton(
-                enabled = uiState.selectedPlaylist != null && uiState.hasValidAccessToken && !uiState.isLoadingPlaylists,
-                onClick = onConfirm
-            ) { Text("Usar playlist") }
-        },
-        dismissButton = {
-            TextButton(onClick = onRetry, enabled = !uiState.isLoadingPlaylists) { Text("Actualizar") }
         }
-    )
+    }
 }
 
 @Composable
-private fun PlaylistRow(playlist: Playlist, selected: Boolean, onClick: () -> Unit) {
+private fun PlaylistCard(playlist: Playlist, selected: Boolean, onClick: () -> Unit) {
+    val borderColor = if (selected) Color(0xFF1DB954) else Color(0xFF1B2A44)
+    val backgroundColor = if (selected) Color(0x331DB954) else Color(0xFF0D1526)
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(backgroundColor)
+            .border(width = 1.dp, color = borderColor, shape = RoundedCornerShape(18.dp))
             .clickable(onClick = onClick)
-            .padding(8.dp),
+            .padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        horizontalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        RadioButton(selected = selected, onClick = onClick)
-        Column(modifier = Modifier.weight(1f)) {
-            Text(text = playlist.name, fontWeight = FontWeight.SemiBold)
+        val painter = rememberAsyncImagePainter(
+            model = playlist.coverUrl,
+            onError = { },
+            onLoading = { }
+        )
+
+        Box(
+            modifier = Modifier
+                .size(70.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(Color(0xFF1B2A44)),
+            contentAlignment = Alignment.Center
+        ) {
+            when (painter.state) {
+                is AsyncImagePainter.State.Loading -> {
+                    CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp)
+                }
+
+                is AsyncImagePainter.State.Error -> {
+                    Icon(
+                        imageVector = Icons.Default.HeadsetMic,
+                        contentDescription = null,
+                        tint = Color(0xFF9AA3B5)
+                    )
+                }
+
+                else -> {
+                    androidx.compose.foundation.Image(
+                        painter = painter,
+                        contentDescription = playlist.name,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+            }
+        }
+
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(
+                text = playlist.name,
+                style = MaterialTheme.typography.titleMedium.copy(color = Color.White, fontWeight = FontWeight.Bold)
+            )
             Text(
                 text = "${playlist.trackCount} canciones",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                style = MaterialTheme.typography.bodySmall.copy(color = Color(0xFF9AA3B5))
             )
         }
+
+        Icon(
+            imageVector = Icons.Default.CheckCircle,
+            contentDescription = null,
+            tint = if (selected) Color(0xFF1DB954) else Color(0xFF2C364C)
+        )
     }
 }
 
