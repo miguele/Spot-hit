@@ -108,7 +108,7 @@ class InMemoryGameRepository : GameRepository {
             currentRound = 0,
             totalRounds = songs.size,
             scores = emptyMap(),
-            state = SessionState.WAITING,
+            state = SessionState.FINISHED,
             currentSong = null,
             timeline = emptyList(),
             songs = songs,
