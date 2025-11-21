@@ -441,7 +441,7 @@ private fun ModeChip(
         ) {
             Icon(imageVector = icon, contentDescription = null, tint = Color(0xFF1DB954))
         }
-        Column(modifier = Modifier.weight(1f)) {
+        Column {
             Text(text = title, color = Color.White, fontWeight = FontWeight.SemiBold)
             Text(text = description, color = Color(0xFF9AA3B5), style = MaterialTheme.typography.bodySmall)
         }
