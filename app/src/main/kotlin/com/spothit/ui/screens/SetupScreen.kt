@@ -398,14 +398,16 @@ private fun ModeSelector(selectedMode: SetupMode, onModeSelected: (SetupMode) ->
             description = "Controla la playlist y el ritmo",
             selected = selectedMode == SetupMode.DJ,
             icon = Icons.Default.HeadsetMic,
-            onClick = { onModeSelected(SetupMode.DJ) }
+            onClick = { onModeSelected(SetupMode.DJ) },
+            modifier = Modifier.weight(1f)
         )
         ModeChip(
             title = "Invitado",
             description = "Únete y adivina los hits",
             selected = selectedMode == SetupMode.GUEST,
             icon = Icons.Default.Person,
-            onClick = { onModeSelected(SetupMode.GUEST) }
+            onClick = { onModeSelected(SetupMode.GUEST) },
+            modifier = Modifier.weight(1f)
         )
     }
 }
@@ -416,14 +418,14 @@ private fun ModeChip(
     description: String,
     selected: Boolean,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val background = if (selected) Color(0xFF1DB954).copy(alpha = 0.2f) else Color.Transparent
     val borderColor = if (selected) Color(0xFF1DB954) else Color(0xFF2E3A55)
 
     Row(
-        modifier = Modifier
-            .weight(1f)
+        modifier = modifier
             .clickable(onClick = onClick)
             .background(background, shape = RoundedCornerShape(14.dp))
             .border(width = 1.dp, color = borderColor, shape = RoundedCornerShape(14.dp))
