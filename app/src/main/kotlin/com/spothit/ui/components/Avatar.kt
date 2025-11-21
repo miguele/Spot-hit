@@ -24,6 +24,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -145,7 +146,7 @@ private fun RemoteAvatar(
     contentColor: Color
 ) {
     val painter = rememberAsyncImagePainter(
-        model = ImageRequest.Builder(LocalAppContext.current)
+        model = ImageRequest.Builder(LocalContext.current)
             .data(avatarUrl)
             .crossfade(true)
             .build()
@@ -214,7 +215,3 @@ private fun InitialsAvatar(initials: String, modifier: Modifier, size: Dp, backg
         )
     }
 }
-
-@Composable
-private val LocalAppContext
-    get() = androidx.compose.ui.platform.LocalContext.current
