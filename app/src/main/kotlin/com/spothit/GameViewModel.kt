@@ -69,7 +69,7 @@ class GameViewModel(
 
     fun createSession(hostName: String, totalRounds: Int, mode: GameMode = GameMode.GUESS_THE_YEAR, avatarUrl: String? = null) {
         viewModelScope.launch {
-            runAction {
+            runAction(markLobbyActive = true) {
                 val host = Player(id = hostName.lowercase(), name = hostName, avatarUrl = avatarUrl, role = PlayerRole.HOST)
                 createGameUseCase(host, totalRounds, mode)
             }
@@ -78,7 +78,7 @@ class GameViewModel(
 
     fun joinSession(playerName: String, lobbyCode: String, role: PlayerRole = PlayerRole.GUEST, avatarUrl: String? = null) {
         viewModelScope.launch {
-            runAction {
+            runAction(markLobbyActive = true) {
                 val player = Player(id = playerName.lowercase(), name = playerName, avatarUrl = avatarUrl, role = role)
                 joinGameUseCase(player, lobbyCode, role)
             }
@@ -167,7 +167,7 @@ class GameViewModel(
         _uiState.value = _uiState.value.copy(selectedPlaylist = playlist)
         val creationParams = pendingCreation ?: return
         viewModelScope.launch {
-            runAction {
+            runAction(markLobbyActive = true) {
                 updatePlaylistUseCase(playlist)
                 val host = Player(
                     id = creationParams.hostName.lowercase(),
@@ -264,11 +264,16 @@ class GameViewModel(
         pendingAuthStorage.clear()
     }
 
-    private suspend fun runAction(block: suspend () -> GameSession?) {
+    private suspend fun runAction(markLobbyActive: Boolean = false, block: suspend () -> GameSession?) {
         try {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             val session = block()
-            _uiState.value = _uiState.value.copy(session = session)
+            val isLobbyActive = when {
+                markLobbyActive && session?.state == SessionState.WAITING -> true
+                session?.state != SessionState.WAITING -> false
+                else -> _uiState.value.isLobbyActive
+            }
+            _uiState.value = _uiState.value.copy(session = session, isLobbyActive = isLobbyActive)
         } catch (throwable: Throwable) {
             _uiState.value = _uiState.value.copy(error = throwable.message)
         } finally {
@@ -290,7 +295,8 @@ data class GameUiState(
     val showPlaylistSelection: Boolean = false,
     val selectedPlaylist: Playlist? = null,
     val hasValidAccessToken: Boolean = false,
-    val creationCompleted: Boolean = false
+    val creationCompleted: Boolean = false,
+    val isLobbyActive: Boolean = false
 ) {
     val isLobby: Boolean get() = session?.state == SessionState.WAITING
     val isPlaying: Boolean get() = session?.state == SessionState.IN_PROGRESS

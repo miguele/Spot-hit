@@ -252,8 +252,8 @@ fun SetupScreen(
         }
     }
 
-    LaunchedEffect(uiState.isLobby) {
-        if (uiState.isLobby && !hasNavigated) {
+    LaunchedEffect(uiState.isLobbyActive) {
+        if (uiState.isLobbyActive && !hasNavigated) {
             hasNavigated = true
             onNavigateToLobby()
         }
